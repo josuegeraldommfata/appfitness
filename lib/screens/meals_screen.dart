@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../providers/app_provider.dart';
 import '../widgets/today_meals_list.dart';
 
 class MealsScreen extends StatelessWidget {
@@ -8,8 +6,6 @@ class MealsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<AppProvider>(context);
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('Refeições'),

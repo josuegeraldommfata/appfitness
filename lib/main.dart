@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/app_provider.dart';
 import 'services/notification_service.dart';
+import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/admin_dashboard_screen.dart';
 import 'screens/meals_screen.dart';
 import 'screens/drinks_screen.dart';
 import 'screens/progress_screen.dart';
@@ -31,13 +33,21 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<AppProvider>(context);
+    return Consumer<AppProvider>(
+      builder: (context, provider, child) {
+        Widget homeScreen;
+        if (!provider.isLoggedIn) {
+          homeScreen = const LoginScreen();
+        } else if (provider.isAdmin) {
+          homeScreen = const AdminDashboardScreen();
+        } else {
+          homeScreen = const HomeScreen();
+        }
 
-    return MaterialApp(
-      title: 'SaúdeFit',
-      theme: ThemeData(
+        return MaterialApp(
+          title: 'SaúdeFit',
+      theme: ThemeData(useMaterial3: true).copyWith(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
-        useMaterial3: true,
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.green,
           foregroundColor: Colors.white,
@@ -49,12 +59,11 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      darkTheme: ThemeData.dark().copyWith(
+      darkTheme: ThemeData.dark(useMaterial3: true).copyWith(
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.green,
           brightness: Brightness.dark,
         ),
-        useMaterial3: true,
         appBarTheme: AppBarTheme(
           backgroundColor: Colors.green[800],
           foregroundColor: Colors.white,
@@ -66,20 +75,23 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      themeMode: provider.themeMode,
-      initialRoute: '/home',
-      routes: {
-        '/home': (context) => const HomeScreen(),
-        '/meals': (context) => const MealsScreen(),
-        '/drinks': (context) => const DrinksScreen(),
-        '/progress': (context) => const ProgressScreen(),
-        '/friends': (context) => const FriendsScreen(),
-        '/calendar': (context) => const CalendarScreen(),
-        '/notifications': (context) => const NotificationsScreen(),
-        '/settings': (context) => const SettingsScreen(),
-        '/add_meal': (context) => const AddMealScreen(),
-        '/add_drink': (context) => const AddDrinkScreen(),
-        '/add_friend': (context) => const AddFriendScreen(),
+          themeMode: provider.themeMode,
+          home: homeScreen,
+          routes: {
+            '/home': (context) => const HomeScreen(),
+            '/admin': (context) => const AdminDashboardScreen(),
+            '/meals': (context) => const MealsScreen(),
+            '/drinks': (context) => const DrinksScreen(),
+            '/progress': (context) => const ProgressScreen(),
+            '/friends': (context) => const FriendsScreen(),
+            '/calendar': (context) => const CalendarScreen(),
+            '/notifications': (context) => const NotificationsScreen(),
+            '/settings': (context) => const SettingsScreen(),
+            '/add_meal': (context) => const AddMealScreen(),
+            '/add_drink': (context) => const AddDrinkScreen(),
+            '/add_friend': (context) => const AddFriendScreen(),
+          },
+        );
       },
     );
   }

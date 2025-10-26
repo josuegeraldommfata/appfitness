@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 
 class MacroProgressCard extends StatelessWidget {
   final Map<String, double> currentMacros;
@@ -87,7 +86,7 @@ class MacroProgressCard extends StatelessWidget {
             width: 60,
             child: CircularProgressIndicator(
               value: progress,
-              backgroundColor: color.withOpacity(0.2),
+              backgroundColor: color.withValues(alpha: 0.2),
               valueColor: AlwaysStoppedAnimation<Color>(color),
               strokeWidth: 6,
             ),

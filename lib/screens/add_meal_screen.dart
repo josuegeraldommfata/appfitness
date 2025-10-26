@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
-import 'dart:io';
 import '../providers/app_provider.dart';
 import '../models/meal.dart';
 
@@ -13,12 +12,10 @@ class AddMealScreen extends StatefulWidget {
 }
 
 class _AddMealScreenState extends State<AddMealScreen> {
-  final _formKey = GlobalKey<FormState>();
   String _mealType = 'Café da Manhã';
   final List<Map<String, dynamic>> _selectedFoods = [];
   final TextEditingController _searchController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
-  XFile? _scannedImage;
 
   final List<String> _mealTypes = [
     'Café da Manhã',
@@ -128,10 +125,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
   Future<void> _scanBarcode() async {
     try {
       final XFile? image = await _picker.pickImage(source: ImageSource.camera);
-      if (image != null) {
-        setState(() {
-          _scannedImage = image;
-        });
+      if (image != null && mounted) {
         // Simular escaneamento - adicionar um alimento mockado
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Código escaneado! Adicionando alimento...')),
@@ -147,9 +141,11 @@ class _AddMealScreenState extends State<AddMealScreen> {
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao escanear: $e')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao escanear: $e')),
+        );
+      }
     }
   }
 
@@ -184,10 +180,12 @@ class _AddMealScreenState extends State<AddMealScreen> {
     final provider = Provider.of<AppProvider>(context, listen: false);
     provider.addMeal(meal);
 
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Refeição "${_mealType}" adicionada!')),
-    );
+    if (mounted) {
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Refeição $_mealType adicionada!')),
+      );
+    }
   }
 
   @override
@@ -361,7 +359,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
                         onChanged: (value) => _updateQuantity(index, value),
                       ),
                     ),
-                    Text('${food['quantity'].toStringAsFixed(1)}x'),
+                    Text(food['quantity'].toStringAsFixed(1) + 'x'),
                   ],
                 ),
                 const SizedBox(height: 8),

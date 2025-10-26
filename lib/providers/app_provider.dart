@@ -2,13 +2,20 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../models/meal.dart';
 import '../models/body_metrics.dart';
+import '../models/auth_user.dart';
 import '../services/mock_data_service.dart';
 
 class AppProvider with ChangeNotifier {
   final MockDataService _dataService = MockDataService();
 
+  AuthUser? _currentAuthUser;
+  AuthUser? get currentAuthUser => _currentAuthUser;
+
   User? _currentUser;
   User? get currentUser => _currentUser;
+
+  bool get isLoggedIn => _currentAuthUser != null;
+  bool get isAdmin => _currentAuthUser?.role == 'admin';
 
   List<Meal> _todayMeals = [];
   List<Meal> get todayMeals => _todayMeals;
@@ -57,32 +64,39 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
 
     await _dataService.loadMockFoods();
+    _dataService.initializeMockAuthData();
 
-    // Load user data from shared preferences (mock)
-    // For now, create a mock user if none exists
-    if (_currentUser == null) {
-      _currentUser = User(
-        id: '1',
-        name: 'Usuário Teste',
-        email: 'teste@email.com',
-        birthDate: DateTime(1990, 1, 1),
-        height: 170.0,
-        weight: 70.0,
-        bodyType: 'Mesomorfo',
-        goal: 'Perda de Peso',
-        targetWeight: 65.0,
-        dailyCalorieGoal: 1800,
-        macroGoals: {
-          'protein': 120.0,
-          'carbs': 180.0,
-          'fat': 60.0,
-        },
-      );
-    }
-
-    await loadTodayData();
+    // No longer auto-create user; wait for login
 
     _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<bool> login(String username, String password) async {
+    _isLoading = true;
+    notifyListeners();
+
+    final authUser = _dataService.authenticate(username, password);
+    if (authUser != null) {
+      _currentAuthUser = authUser;
+      _currentUser = _dataService.getUserById(authUser.userId);
+      await loadTodayData();
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } else {
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
+  void logout() {
+    _currentAuthUser = null;
+    _currentUser = null;
+    _todayMeals = [];
+    _waterIntake = 0.0;
+    _bodyMetricsHistory = [];
     notifyListeners();
   }
 

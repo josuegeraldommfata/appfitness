@@ -153,7 +153,7 @@ class FriendsScreen extends StatelessWidget {
                             ),
                           ),
                           trailing: Text(
-                            '${12000 - (position - 1) * 500} kcal',
+                            (12000 - (position - 1) * 500).toString() + ' kcal',
                             style: const TextStyle(fontWeight: FontWeight.w500),
                           ),
                         );

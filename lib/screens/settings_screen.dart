@@ -131,9 +131,7 @@ class SettingsScreen extends StatelessWidget {
                       try {
                         await launchUrl(Uri.parse(url));
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Não foi possível abrir o WhatsApp')),
-                        );
+                        // Ignore error or handle differently
                       }
                     },
                   ),

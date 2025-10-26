@@ -1,8 +1,7 @@
-import 'dart:convert';
-import 'package:flutter/services.dart';
 import '../models/user.dart';
 import '../models/meal.dart';
 import '../models/body_metrics.dart';
+import '../models/auth_user.dart';
 
 class MockDataService {
   static final MockDataService _instance = MockDataService._internal();
@@ -15,6 +14,91 @@ class MockDataService {
 
   void setCurrentUser(User user) {
     _currentUser = user;
+  }
+
+  // Mock auth users
+  List<AuthUser> _authUsers = [];
+  List<User> _users = [];
+
+  List<AuthUser> get authUsers => _authUsers;
+  List<User> get users => _users;
+
+  void initializeMockAuthData() {
+    if (_authUsers.isNotEmpty) return;
+
+    // Mock users
+    _users = [
+      User(
+        id: '1',
+        name: 'Usuário Teste',
+        email: 'user@email.com',
+        birthDate: DateTime(1990, 1, 1),
+        height: 170.0,
+        weight: 70.0,
+        bodyType: 'Mesomorfo',
+        goal: 'Perda de Peso',
+        targetWeight: 65.0,
+        dailyCalorieGoal: 1800,
+        macroGoals: {
+          'protein': 120.0,
+          'carbs': 180.0,
+          'fat': 60.0,
+        },
+      ),
+      User(
+        id: '2',
+        name: 'Admin Teste',
+        email: 'admin@email.com',
+        birthDate: DateTime(1985, 5, 15),
+        height: 175.0,
+        weight: 75.0,
+        bodyType: 'Ectomorfo',
+        goal: 'Ganho Muscular',
+        targetWeight: 80.0,
+        dailyCalorieGoal: 2500,
+        macroGoals: {
+          'protein': 200.0,
+          'carbs': 300.0,
+          'fat': 80.0,
+        },
+      ),
+    ];
+
+    // Mock auth users
+    _authUsers = [
+      AuthUser(
+        username: 'user',
+        password: 'user123',
+        role: 'user',
+        userId: '1',
+      ),
+      AuthUser(
+        username: 'admin',
+        password: 'admin123',
+        role: 'admin',
+        userId: '2',
+      ),
+    ];
+  }
+
+  AuthUser? authenticate(String username, String password) {
+    try {
+      return _authUsers.firstWhere(
+        (authUser) => authUser.username == username && authUser.password == password,
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
+  User? getUserById(String userId) {
+    try {
+      return _users.firstWhere(
+        (user) => user.id == userId,
+      );
+    } catch (e) {
+      return null;
+    }
   }
 
   // Mock foods database
@@ -84,7 +168,7 @@ class MockDataService {
   }
 
   // Mock meals
-  List<Meal> _meals = [];
+  final List<Meal> _meals = [];
 
   List<Meal> getMealsForDate(DateTime date) {
     return _meals.where((meal) =>
@@ -109,7 +193,7 @@ class MockDataService {
   }
 
   // Mock body metrics
-  List<BodyMetrics> _bodyMetrics = [];
+  final List<BodyMetrics> _bodyMetrics = [];
 
   List<BodyMetrics> getBodyMetricsHistory() {
     return _bodyMetrics..sort((a, b) => b.date.compareTo(a.date));
@@ -120,7 +204,7 @@ class MockDataService {
   }
 
   // Mock friends
-  List<Map<String, dynamic>> _friends = [
+  final List<Map<String, dynamic>> _friends = [
     {
       'id': '1',
       'name': 'João Silva',
