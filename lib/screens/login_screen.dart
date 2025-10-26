@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../services/mock_data_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -12,7 +13,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  String? _errorMessage;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -22,25 +23,52 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
-    final provider = Provider.of<AppProvider>(context, listen: false);
-    final success = await provider.login(
-      _usernameController.text.trim(),
-      _passwordController.text.trim(),
-    );
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text.trim();
 
-    if (success) {
-      // Login successful, navigation will be handled by main.dart
-    } else {
-      setState(() {
-        _errorMessage = 'Credenciais inválidas. Tente novamente.';
-      });
+    if (username.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor, preencha todos os campos')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final mockService = MockDataService();
+      mockService.initializeMockAuthData();
+
+      final provider = Provider.of<AppProvider>(context, listen: false);
+      final success = await provider.login(username, password);
+
+      if (!mounted) return;
+
+      if (success) {
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Credenciais inválidas')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erro ao fazer login: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final provider = Provider.of<AppProvider>(context);
-
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -52,19 +80,20 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24.0),
+            padding: const EdgeInsets.all(24),
             child: Card(
               elevation: 8,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(24.0),
+                padding: const EdgeInsets.all(24),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Logo/Title
                     Icon(
-                      Icons.health_and_safety,
+                      Icons.restaurant_menu,
                       size: 64,
                       color: Colors.green[600],
                     ),
@@ -78,61 +107,91 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Entre com suas credenciais',
-                      style: Theme.of(context).textTheme.bodyLarge,
+                      'Faça login para continuar',
+                      style: TextStyle(color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 32),
+
+                    // Username Field
                     TextField(
                       controller: _usernameController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Usuário',
-                        prefixIcon: Icon(Icons.person),
-                        border: OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.person),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: 16),
+
+                    // Password Field
                     TextField(
                       controller: _passwordController,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Senha',
-                        prefixIcon: Icon(Icons.lock),
-                        border: OutlineInputBorder(),
+                        prefixIcon: const Icon(Icons.lock),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                       obscureText: true,
                       textInputAction: TextInputAction.done,
                       onSubmitted: (_) => _login(),
                     ),
-                    if (_errorMessage != null) ...[
-                      const SizedBox(height: 16),
-                      Text(
-                        _errorMessage!,
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    ],
                     const SizedBox(height: 24),
+
+                    // Login Button
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton(
-                        onPressed: provider.isLoading ? null : _login,
+                        onPressed: _isLoading ? null : _login,
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child: provider.isLoading
+                        child: _isLoading
                             ? const CircularProgressIndicator()
-                            : const Text('Entrar'),
+                            : const Text(
+                                'Entrar',
+                                style: TextStyle(fontSize: 16),
+                              ),
                       ),
                     ),
+
                     const SizedBox(height: 16),
-                    Text(
-                      'Credenciais de teste:\nUsuário: user / Senha: user123\nAdmin: admin / Senha: admin123',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: Colors.grey[600],
+
+                    // Mock Credentials Info
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey[100],
+                        borderRadius: BorderRadius.circular(8),
                       ),
-                      textAlign: TextAlign.center,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Credenciais de teste:',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Usuário: user / Senha: user123',
+                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                          ),
+                          Text(
+                            'Admin: admin / Senha: admin123',
+                            style: TextStyle(color: Colors.grey[600], fontSize: 12),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),

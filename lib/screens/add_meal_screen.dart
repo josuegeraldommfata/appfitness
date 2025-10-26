@@ -215,6 +215,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
             padding: const EdgeInsets.all(16),
             color: Colors.grey[100],
             child: DropdownButtonFormField<String>(
+              // ignore: deprecated_member_use
               value: _mealType,
               decoration: const InputDecoration(
                 labelText: 'Tipo de Refeição',

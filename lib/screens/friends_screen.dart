@@ -73,7 +73,9 @@ class FriendsScreen extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        friend['todayCalories'] >= friend['dailyGoal'] ? 'Meta OK' : 'Em progresso',
+                        friend['todayCalories'] >= friend['dailyGoal'] 
+                            ? 'Meta OK' 
+                            : 'Em progresso',
                         style: TextStyle(
                           color: friend['todayCalories'] >= friend['dailyGoal']
                               ? Colors.green[800]
@@ -129,6 +131,7 @@ class FriendsScreen extends StatelessWidget {
                       itemBuilder: (context, index) {
                         final position = index + 1;
                         final isCurrentUser = position == provider.userRanking;
+                        final calories = 12000 - (position - 1) * 500;
                         return ListTile(
                           leading: CircleAvatar(
                             backgroundColor: position == 1
@@ -147,13 +150,13 @@ class FriendsScreen extends StatelessWidget {
                             ),
                           ),
                           title: Text(
-                            isCurrentUser ? 'Você' : 'Amigo ${position}',
+                            isCurrentUser ? 'Você' : 'Amigo $position',
                             style: TextStyle(
                               fontWeight: isCurrentUser ? FontWeight.bold : FontWeight.normal,
                             ),
                           ),
                           trailing: Text(
-                            (12000 - (position - 1) * 500).toString() + ' kcal',
+                            '$calories kcal',
                             style: const TextStyle(fontWeight: FontWeight.w500),
                           ),
                         );
