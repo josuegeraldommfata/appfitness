@@ -11,6 +11,7 @@ class User {
   final double targetWeight; // peso alvo
   final int dailyCalorieGoal; // meta calórica diária
   final Map<String, double> macroGoals; // proteínas, carboidratos, gorduras em g
+  final String role; // 'user' or 'admin'
 
   User({
     required this.id,
@@ -25,6 +26,7 @@ class User {
     required this.targetWeight,
     required this.dailyCalorieGoal,
     required this.macroGoals,
+    this.role = 'user',
   });
 
   int get age => DateTime.now().year - birthDate.year;
@@ -44,6 +46,7 @@ class User {
     double? targetWeight,
     int? dailyCalorieGoal,
     Map<String, double>? macroGoals,
+    String? role,
   }) {
     return User(
       id: id ?? this.id,
@@ -58,6 +61,7 @@ class User {
       targetWeight: targetWeight ?? this.targetWeight,
       dailyCalorieGoal: dailyCalorieGoal ?? this.dailyCalorieGoal,
       macroGoals: macroGoals ?? this.macroGoals,
+      role: role ?? this.role,
     );
   }
 
@@ -75,6 +79,7 @@ class User {
       'targetWeight': targetWeight,
       'dailyCalorieGoal': dailyCalorieGoal,
       'macroGoals': macroGoals,
+      'role': role,
     };
   }
 
@@ -92,6 +97,7 @@ class User {
       targetWeight: json['targetWeight'],
       dailyCalorieGoal: json['dailyCalorieGoal'],
       macroGoals: Map<String, double>.from(json['macroGoals']),
+      role: json['role'] ?? 'user',
     );
   }
 }

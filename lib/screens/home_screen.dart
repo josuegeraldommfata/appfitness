@@ -16,7 +16,7 @@ class HomeScreen extends StatelessWidget {
       builder: (context, provider, child) {
         return Scaffold(
           appBar: AppBar(
-            title: const Text('SaúdeFit'),
+            title: const Text('Nudge'),
             backgroundColor: Colors.green[600],
             elevation: 0,
             actions: [
@@ -124,6 +124,14 @@ class HomeScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+          floatingActionButton: FloatingActionButton(
+            onPressed: () {
+              Navigator.pushNamed(context, '/ai_chat');
+            },
+            backgroundColor: Colors.green[600],
+            child: const Icon(Icons.chat, color: Colors.white),
+            tooltip: 'Assistente AI para consultas nutricionais',
+          ),
           bottomNavigationBar: BottomNavigationBar(
             currentIndex: 0,
             onTap: (index) {

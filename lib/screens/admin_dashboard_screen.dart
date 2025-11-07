@@ -1,9 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
+import '../models/user.dart';
+import 'reports_screen.dart';
 
-class AdminDashboardScreen extends StatelessWidget {
+class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key});
+
+  @override
+  State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
+}
+
+class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<AppProvider>(context, listen: false).loadAdminData();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -82,12 +97,12 @@ class AdminDashboardScreen extends StatelessWidget {
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Usuários Ativos',
+                            'Total Usuários',
                             style: TextStyle(color: Colors.grey[600]),
                           ),
-                          const Text(
-                            '1,234',
-                            style: TextStyle(
+                          Text(
+                            '${provider.userCount}',
+                            style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
@@ -116,7 +131,7 @@ class AdminDashboardScreen extends StatelessWidget {
                             style: TextStyle(color: Colors.grey[600]),
                           ),
                           Text(
-                            '${provider.todayMeals.length}',
+                            '${provider.totalMealsToday}',
                             style: const TextStyle(
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
@@ -154,9 +169,7 @@ class AdminDashboardScreen extends StatelessWidget {
                   Icons.people,
                   Colors.blue,
                   () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Gerenciar usuários - Em breve!')),
-                    );
+                    _showUserManagementDialog(context, provider);
                   },
                 ),
                 _buildAdminActionCard(
@@ -165,8 +178,9 @@ class AdminDashboardScreen extends StatelessWidget {
                   Icons.analytics,
                   Colors.purple,
                   () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Relatórios - Em breve!')),
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => const ReportsScreen()),
                     );
                   },
                 ),
@@ -193,9 +207,9 @@ class AdminDashboardScreen extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            // Recent Activity
+            // User List
             Text(
-              'Atividade Recente',
+              'Lista de Usuários',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 fontWeight: FontWeight.bold,
               ),
@@ -210,18 +224,34 @@ class AdminDashboardScreen extends StatelessWidget {
               child: ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: 5,
+                itemCount: provider.allUsers.length,
                 itemBuilder: (context, index) {
+                  final user = provider.allUsers[index];
                   return ListTile(
                     leading: CircleAvatar(
                       backgroundColor: Colors.green[100],
-                      child: Text('${index + 1}'),
+                      child: Text(user.name[0].toUpperCase()),
                     ),
-                    title: Text('Atividade ${index + 1}'),
-                    subtitle: Text('Descrição da atividade ${index + 1}'),
-                    trailing: Text(
-                      '${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}',
-                      style: TextStyle(color: Colors.grey[600]),
+                    title: Text(user.name),
+                    subtitle: Text(user.email),
+                    trailing: PopupMenuButton<String>(
+                      onSelected: (value) {
+                        if (value == 'delete') {
+                          _confirmDeleteUser(context, provider, user);
+                        } else if (value == 'role') {
+                          _changeUserRole(context, provider, user);
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'role',
+                          child: Text('Alterar Função'),
+                        ),
+                        const PopupMenuItem(
+                          value: 'delete',
+                          child: Text('Excluir Usuário'),
+                        ),
+                      ],
                     ),
                   );
                 },
@@ -269,6 +299,84 @@ class AdminDashboardScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showUserManagementDialog(BuildContext context, AppProvider provider) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Gerenciar Usuários'),
+        content: const Text('Aqui você pode visualizar e gerenciar todos os usuários do sistema.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Fechar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteUser(BuildContext context, AppProvider provider, User user) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar Exclusão'),
+        content: Text('Tem certeza que deseja excluir o usuário ${user.name}? Esta ação não pode ser desfeita.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await provider.deleteUser(user.id);
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Usuário ${user.name} excluído com sucesso.')),
+              );
+            },
+            child: const Text('Excluir'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _changeUserRole(BuildContext context, AppProvider provider, User user) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Alterar Função'),
+        content: const Text('Selecione a nova função para o usuário:'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await provider.updateUserRole(user.id, 'admin');
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Função alterada para admin.')),
+              );
+            },
+            child: const Text('Admin'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await provider.updateUserRole(user.id, 'user');
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Função alterada para user.')),
+              );
+            },
+            child: const Text('User'),
+          ),
+        ],
       ),
     );
   }

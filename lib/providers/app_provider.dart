@@ -2,27 +2,25 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../models/meal.dart';
 import '../models/body_metrics.dart';
-import '../models/auth_user.dart';
+import '../services/firebase_service.dart';
 import '../services/mock_data_service.dart';
 
 class AppProvider with ChangeNotifier {
-  final MockDataService _dataService = MockDataService();
-
-  AuthUser? _currentAuthUser;
-  AuthUser? get currentAuthUser => _currentAuthUser;
+  final FirebaseService _dataService = FirebaseService();
+  final MockDataService _mockService = MockDataService();
 
   User? _currentUser;
   User? get currentUser => _currentUser;
 
-  bool get isLoggedIn => _currentAuthUser != null;
-  bool get isAdmin => _currentAuthUser?.role == 'admin';
+  bool get isLoggedIn => _dataService.currentUser != null;
+  bool get isAdmin => _currentUser?.role == 'admin'; // Check role for admin
 
   List<Meal> _todayMeals = [];
   List<Meal> get todayMeals => _todayMeals;
 
   double _waterIntake = 0.0;
   double get waterIntake => _waterIntake;
-  double get waterGoal => _dataService.waterGoal;
+  double get waterGoal => FirebaseService.waterGoal;
 
   List<BodyMetrics> _bodyMetricsHistory = [];
   List<BodyMetrics> get bodyMetricsHistory => _bodyMetricsHistory;
@@ -35,7 +33,9 @@ class AppProvider with ChangeNotifier {
   ThemeMode get themeMode => _themeMode;
 
   void toggleTheme() {
-    _themeMode = _themeMode == ThemeMode.light ? ThemeMode.dark : ThemeMode.light;
+    _themeMode = _themeMode == ThemeMode.light
+        ? ThemeMode.dark
+        : ThemeMode.light;
     notifyListeners();
   }
 
@@ -63,23 +63,60 @@ class AppProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    await _dataService.loadMockFoods();
-    _dataService.initializeMockAuthData();
-
-    // No longer auto-create user; wait for login
+    // Firebase is initialized in main.dart
+    // Load user if already logged in
+    if (_dataService.currentUser != null) {
+      final user = _dataService.currentUser!;
+      final uid = user.uid;
+      _currentUser = await _dataService.getUser(uid);
+      await loadTodayData();
+    }
 
     _isLoading = false;
     notifyListeners();
   }
 
-  Future<bool> login(String username, String password) async {
+  Future<bool> login(String email, String password) async {
     _isLoading = true;
     notifyListeners();
 
-    final authUser = _dataService.authenticate(username, password);
-    if (authUser != null) {
-      _currentAuthUser = authUser;
-      _currentUser = _dataService.getUserById(authUser.userId);
+    // Try Firebase first
+    var credential = await _dataService.signIn(email, password);
+    if (credential != null) {
+      final firebaseUser = credential.user!;
+      _currentUser = await _dataService.getUser(firebaseUser.uid);
+      await loadTodayData();
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } else {
+      // Fallback to mock data
+      final authUser = _mockService.authenticate(email, password);
+      if (authUser != null) {
+        _currentUser = _mockService.getUserById(authUser.userId);
+        await loadMockTodayData();
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  }
+
+  Future<bool> signUp(String email, String password, User user) async {
+    _isLoading = true;
+    notifyListeners();
+
+    final credential = await _dataService.signUp(email, password);
+    if (credential != null) {
+      final firebaseUser = credential.user!;
+      final uid = firebaseUser.uid;
+      final updatedUser = user.copyWith(id: uid);
+      await _dataService.saveUser(updatedUser);
+      _currentUser = updatedUser;
       await loadTodayData();
       _isLoading = false;
       notifyListeners();
@@ -91,8 +128,8 @@ class AppProvider with ChangeNotifier {
     }
   }
 
-  void logout() {
-    _currentAuthUser = null;
+  Future<void> logout() async {
+    await _dataService.signOut();
     _currentUser = null;
     _todayMeals = [];
     _waterIntake = 0.0;
@@ -101,55 +138,70 @@ class AppProvider with ChangeNotifier {
   }
 
   Future<void> loadTodayData() async {
-    final today = DateTime.now();
-    _todayMeals = _dataService.getMealsForDate(today);
-    _waterIntake = _dataService.waterIntakeToday;
-    _bodyMetricsHistory = _dataService.getBodyMetricsHistory();
+    try {
+      final today = DateTime.now();
+      _todayMeals = await _dataService.getMealsForDate(today);
+      _waterIntake = await _dataService.getWaterIntakeToday();
+      _bodyMetricsHistory = await _dataService.getBodyMetricsHistory();
+    } catch (e) {
+      print('Error loading today data: $e');
+      // Set empty data on error to avoid loop
+      _todayMeals = [];
+      _waterIntake = 0.0;
+      _bodyMetricsHistory = [];
+      // Note: Create the required index in Firebase Console to fix the query error
+    }
+    notifyListeners();
+  }
+
+  Future<void> loadMockTodayData() async {
+    _todayMeals = _mockService.getMealsForDate(DateTime.now());
+    _waterIntake = _mockService.waterIntakeToday;
+    _bodyMetricsHistory = _mockService.getBodyMetricsHistory();
     notifyListeners();
   }
 
   Future<void> loadDataForDate(DateTime date) async {
-    _todayMeals = _dataService.getMealsForDate(date);
+    _todayMeals = await _dataService.getMealsForDate(date);
     // TODO: Load water and metrics for specific date
     notifyListeners();
   }
 
   void setCurrentUser(User user) {
     _currentUser = user;
-    _dataService.setCurrentUser(user);
     notifyListeners();
   }
 
-  void addMeal(Meal meal) {
-    _dataService.addMeal(meal);
-    loadTodayData(); // Reload today data
+  Future<void> addMeal(Meal meal) async {
+    await _dataService.addMeal(meal);
+    await loadTodayData(); // Reload today data
   }
 
-  void updateMeal(Meal meal) {
-    _dataService.updateMeal(meal);
-    loadTodayData();
+  Future<void> updateMeal(String id, Meal meal) async {
+    await _dataService.updateMeal(id, meal);
+    await loadTodayData();
   }
 
-  void deleteMeal(String mealId) {
-    _dataService.deleteMeal(mealId);
-    loadTodayData();
+  Future<void> deleteMeal(String mealId) async {
+    await _dataService.deleteMeal(mealId);
+    await loadTodayData();
   }
 
-  void addWater(double amount) {
-    _dataService.addWater(amount);
-    _waterIntake = _dataService.waterIntakeToday;
+  Future<void> addWater(double amount) async {
+    await _dataService.addWater(amount);
+    _waterIntake = await _dataService.getWaterIntakeToday();
     notifyListeners();
   }
 
-  void resetWaterIntake() {
-    _dataService.resetWaterIntake();
+  Future<void> resetWaterIntake() async {
+    await _dataService.resetWaterIntake();
     _waterIntake = 0.0;
     notifyListeners();
   }
 
-  void addBodyMetrics(BodyMetrics metrics) {
-    _dataService.addBodyMetrics(metrics);
-    _bodyMetricsHistory = _dataService.getBodyMetricsHistory();
+  Future<void> addBodyMetrics(BodyMetrics metrics) async {
+    await _dataService.addBodyMetrics(metrics);
+    _bodyMetricsHistory = await _dataService.getBodyMetricsHistory();
     notifyListeners();
   }
 
@@ -169,11 +221,7 @@ class AppProvider with ChangeNotifier {
       fat += meal.totalMacros['fat'] ?? 0;
     }
 
-    return {
-      'protein': protein,
-      'carbs': carbs,
-      'fat': fat,
-    };
+    return {'protein': protein, 'carbs': carbs, 'fat': fat};
   }
 
   double get calorieProgress {
@@ -183,6 +231,37 @@ class AppProvider with ChangeNotifier {
 
   double get waterProgress {
     return _waterIntake / waterGoal;
+  }
+
+  // Admin data
+  List<User> _allUsers = [];
+  List<User> get allUsers => _allUsers;
+
+  int _userCount = 0;
+  int get userCount => _userCount;
+
+  int _activeUsersCount = 0;
+  int get activeUsersCount => _activeUsersCount;
+
+  int _totalMealsToday = 0;
+  int get totalMealsToday => _totalMealsToday;
+
+  Future<void> loadAdminData() async {
+    _allUsers = await _dataService.getAllUsers();
+    _userCount = await _dataService.getUserCount();
+    _activeUsersCount = await _dataService.getActiveUsersCount();
+    _totalMealsToday = await _dataService.getTotalMealsToday();
+    notifyListeners();
+  }
+
+  Future<void> deleteUser(String uid) async {
+    await _dataService.deleteUser(uid);
+    await loadAdminData();
+  }
+
+  Future<void> updateUserRole(String uid, String role) async {
+    await _dataService.updateUserRole(uid, role);
+    await loadAdminData();
   }
 
   // Mock friends data

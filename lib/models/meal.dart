@@ -6,6 +6,7 @@ class Meal {
   final List<FoodItem> foods;
   final int totalCalories;
   final Map<String, double> totalMacros; // proteínas, carboidratos, gorduras
+  String? userId;
 
   Meal({
     required this.id,
@@ -15,6 +16,7 @@ class Meal {
     required this.foods,
     required this.totalCalories,
     required this.totalMacros,
+    this.userId,
   });
 
   Meal copyWith({
@@ -46,6 +48,7 @@ class Meal {
       'foods': foods.map((food) => food.toJson()).toList(),
       'totalCalories': totalCalories,
       'totalMacros': totalMacros,
+      'userId': userId,
     };
   }
 
@@ -58,6 +61,7 @@ class Meal {
       foods: (json['foods'] as List).map((food) => FoodItem.fromJson(food)).toList(),
       totalCalories: json['totalCalories'],
       totalMacros: Map<String, double>.from(json['totalMacros']),
+      userId: json['userId'],
     );
   }
 }

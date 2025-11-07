@@ -1,0 +1,13 @@
+{
+  "name": "firebase-setup",
+  "version": "1.0.0",
+  "description": "Script to create demo users in Firebase",
+  "main": "create_users.js",
+  "dependencies": {
+    "firebase-admin": "^12.5.0"
+  },
+  "scripts": {
+    "create-users": "node create_users.js",
+    "initialize-firestore": "node initialize_firestore.js"
+  }
+}

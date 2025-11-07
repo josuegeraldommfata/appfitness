@@ -40,8 +40,8 @@ class NotificationService {
     const AndroidNotificationDetails androidPlatformChannelSpecifics =
         AndroidNotificationDetails(
       'saudefit_channel',
-      'SaúdeFit Notifications',
-      channelDescription: 'Notificações do app SaúdeFit',
+      'Nudge Notifications',
+      channelDescription: 'Notificações do app Nudge',
       importance: Importance.max,
       priority: Priority.high,
       showWhen: false,
@@ -77,8 +77,8 @@ class NotificationService {
       const NotificationDetails(
         android: AndroidNotificationDetails(
           'saudefit_scheduled_channel',
-          'SaúdeFit Scheduled Notifications',
-          channelDescription: 'Notificações agendadas do SaúdeFit',
+          'Nudge Scheduled Notifications',
+          channelDescription: 'Notificações agendadas do Nudge',
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,

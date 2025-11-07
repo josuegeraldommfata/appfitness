@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
 import '../services/mock_data_service.dart';
@@ -11,22 +11,22 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _usernameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
 
   @override
   void dispose() {
-    _usernameController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _login() async {
-    final username = _usernameController.text.trim();
+    final email = _emailController.text.trim();
     final password = _passwordController.text.trim();
 
-    if (username.isEmpty || password.isEmpty) {
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Por favor, preencha todos os campos')),
       );
@@ -38,16 +38,18 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final mockService = MockDataService();
-      mockService.initializeMockAuthData();
-
       final provider = Provider.of<AppProvider>(context, listen: false);
-      final success = await provider.login(username, password);
+      final success = await provider.login(email, password);
 
       if (!mounted) return;
 
       if (success) {
-        Navigator.pushReplacementNamed(context, '/home');
+        final provider = Provider.of<AppProvider>(context, listen: false);
+        if (provider.isAdmin) {
+          Navigator.pushReplacementNamed(context, '/admin');
+        } else {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Credenciais inválidas')),
@@ -99,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'SaúdeFit',
+                      'Nudge',
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: Colors.green[800],
@@ -112,16 +114,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     const SizedBox(height: 32),
 
-                    // Username Field
+                    // Email Field
                     TextField(
-                      controller: _usernameController,
+                      controller: _emailController,
                       decoration: InputDecoration(
-                        labelText: 'Usuário',
-                        prefixIcon: const Icon(Icons.person),
+                        labelText: 'Email',
+                        prefixIcon: const Icon(Icons.email),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
+                      keyboardType: TextInputType.emailAddress,
                       textInputAction: TextInputAction.next,
                     ),
                     const SizedBox(height: 16),
@@ -164,7 +167,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     const SizedBox(height: 16),
 
-                    // Mock Credentials Info
+                    // Test Credentials Info
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
@@ -183,11 +186,11 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Usuário: user / Senha: user123',
+                            'Email: demouser@email.com / Senha: user123',
                             style: TextStyle(color: Colors.grey[600], fontSize: 12),
                           ),
                           Text(
-                            'Admin: admin / Senha: admin123',
+                            'Admin: demoadmin@email.com / Senha: admin123',
                             style: TextStyle(color: Colors.grey[600], fontSize: 12),
                           ),
                         ],

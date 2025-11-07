@@ -140,10 +140,8 @@ class SettingsScreen extends StatelessWidget {
                     leading: const Icon(Icons.logout),
                     title: const Text('Sair'),
                     onTap: () {
-                      // TODO: Implement logout
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Logout - Em breve!')),
-                      );
+                      provider.logout();
+                      Navigator.pushReplacementNamed(context, '/');
                     },
                   ),
                 ],

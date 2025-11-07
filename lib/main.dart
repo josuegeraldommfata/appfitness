@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
+import 'firebase_options.dart';
 import 'providers/app_provider.dart';
 import 'services/notification_service.dart';
 import 'screens/login_screen.dart';
@@ -15,9 +17,14 @@ import 'screens/settings_screen.dart';
 import 'screens/add_meal_screen.dart';
 import 'screens/add_drink_screen.dart';
 import 'screens/add_friend_screen.dart';
+import 'screens/ai_chat_screen.dart';
+import 'screens/reports_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   await NotificationService().initialize();
 
   runApp(
@@ -45,7 +52,7 @@ class MyApp extends StatelessWidget {
         }
 
         return MaterialApp(
-          title: 'SaúdeFit',
+          title: 'Nudge',
       theme: ThemeData(useMaterial3: true).copyWith(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         appBarTheme: const AppBarTheme(
@@ -90,6 +97,8 @@ class MyApp extends StatelessWidget {
             '/add_meal': (context) => const AddMealScreen(),
             '/add_drink': (context) => const AddDrinkScreen(),
             '/add_friend': (context) => const AddFriendScreen(),
+            '/ai_chat': (context) => const AIChatScreen(),
+            '/reports': (context) => const ReportsScreen(),
           },
         );
       },

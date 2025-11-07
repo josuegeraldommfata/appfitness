@@ -44,6 +44,7 @@ class MockDataService {
           'carbs': 180.0,
           'fat': 60.0,
         },
+        role: 'user',
       ),
       User(
         id: '2',
@@ -61,6 +62,7 @@ class MockDataService {
           'carbs': 300.0,
           'fat': 80.0,
         },
+        role: 'admin',
       ),
     ];
 

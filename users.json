@@ -1,0 +1,26 @@
+{
+  "users": [
+    {
+      "localId": "demo_user_1",
+      "email": "user@email.com",
+      "emailVerified": true,
+      "passwordHash": "passwordHash1",
+      "salt": "salt1",
+      "displayName": "Usuário Teste",
+      "createdAt": "1609459200000",
+      "lastLoginAt": "1609459200000",
+      "customAttributes": "{\"role\":\"user\"}"
+    },
+    {
+      "localId": "demo_admin_1",
+      "email": "admin@email.com",
+      "emailVerified": true,
+      "passwordHash": "passwordHash2",
+      "salt": "salt2",
+      "displayName": "Admin Teste",
+      "createdAt": "1609459200000",
+      "lastLoginAt": "1609459200000",
+      "customAttributes": "{\"role\":\"admin\"}"
+    }
+  ]
+}
