@@ -15,7 +15,7 @@
 - **Coleções criadas automaticamente**: users, subscriptions, meals, bodymetrics, waterintakes
 
 ### 3. Integração Stripe
-- **Chave secreta configurada**: `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`
+- **Chave secreta configurada**: `sk_live_...` (configure no arquivo .env)
 - **Endpoints criados**: 
   - `POST /api/stripe/create-payment-intent`
   - `POST /api/stripe/create-subscription`
@@ -42,8 +42,8 @@ Crie um arquivo `.env` na pasta `backend/`:
 MONGODB_URI=mongodb+srv://Nudge:320809eu@nudge.ixd6wep.mongodb.net/nudge?retryWrites=true&w=majority
 PORT=3000
 NODE_ENV=development
-STRIPE_SECRET_KEY=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
-MERCADOPAGO_ACCESS_TOKEN=APP_USR-962011830720089-111415-bcffcdf3b9ab0b8982cd406d845391f0-2991374520
+STRIPE_SECRET_KEY=sk_live_... (substitua pela sua chave)
+MERCADOPAGO_ACCESS_TOKEN=APP_USR-... (substitua pelo seu token)
 MERCADOPAGO_PUBLIC_KEY=APP_USR-d766e8e8-fa64-4265-b19a-5295dc6a0a7f
 ```
 

@@ -11,7 +11,7 @@ class PaymentConfig {
   
   // ⚠️ SECURITY WARNING: Never expose secret keys in the mobile app!
   // This should ONLY be used in your backend server
-  // Backend should use: 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
+  // Backend should use: sk_live_... (configure sua chave no backend)
   // ⚠️ DO NOT include the secret key in the mobile app code!
   // static const String stripeSecretKey = 'REMOVED_FOR_SECURITY'; // Use only in backend
   
@@ -22,7 +22,7 @@ class PaymentConfig {
   
   // ⚠️ SECURITY WARNING: Never expose access token in the mobile app!
   // This should ONLY be used in your backend server
-  // Backend should use: APP_USR-962011830720089-111415-bcffcdf3b9ab0b8982cd406d845391f0-2991374520
+  // Backend should use: APP_USR-... (configure seu token no backend)
   // ⚠️ DO NOT include the access token in the mobile app code!
   // static const String mercadoPagoAccessToken = 'REMOVED_FOR_SECURITY'; // Use only in backend
   

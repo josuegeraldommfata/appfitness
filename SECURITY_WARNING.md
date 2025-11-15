@@ -2,7 +2,7 @@
 
 ## 🚨 IMPORTANTE: Chave Secreta do Stripe
 
-A chave secreta do Stripe (`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`) foi adicionada ao arquivo de configuração **APENAS PARA REFERÊNCIA**.
+A chave secreta do Stripe (`sk_live_...`) deve ser configurada **APENAS NO BACKEND**.
 
 ### ⚠️ NUNCA use a chave secreta no aplicativo mobile!
 
@@ -44,7 +44,7 @@ static const String stripePublishableKey = 'pk_live_51STRZXEYtTHdCbed...'; // �
 
 **Backend Server (variáveis de ambiente):**
 ```bash
-STRIPE_SECRET_KEY=sk_live_51STRZXEYtTHdCbed... # ✅ Configurado no servidor
+STRIPE_SECRET_KEY=sk_live_... # ✅ Configure sua chave no servidor
 ```
 
 ### 📚 Documentação:
