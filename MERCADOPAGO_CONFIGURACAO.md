@@ -90,7 +90,7 @@ app.post('/create-preference', async (req, res) => {
 A chave pública já está configurada:
 
 ```dart
-static const String mercadoPagoPublicKey = 'APP_USR-d766e8e8-fa64-4265-b19a-5295dc6a0a7f';
+static const String mercadoPagoPublicKey = 'APP_USR-YOUR_PUBLIC_KEY_HERE';
 ```
 
 ### ⚠️ IMPORTANTE

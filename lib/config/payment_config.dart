@@ -18,7 +18,7 @@ class PaymentConfig {
   // Mercado Pago Keys
   // Get these from: https://www.mercadopago.com.br/developers/panel/credentials
   // ✅ Public Key - Safe to use in mobile app
-  static const String mercadoPagoPublicKey = 'APP_USR-d766e8e8-fa64-4265-b19a-5295dc6a0a7f';
+  static const String mercadoPagoPublicKey = 'APP_USR-d766e8e8-fa64-4265-b19a-5295dc6a0a7f'; // Public key é segura para usar no app
   
   // ⚠️ SECURITY WARNING: Never expose access token in the mobile app!
   // This should ONLY be used in your backend server
