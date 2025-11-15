@@ -28,7 +28,7 @@ Crie um arquivo `.env` na pasta `backend/`:
 MONGODB_URI=mongodb+srv://Nudge:320809eu@nudge.ixd6wep.mongodb.net/nudge?retryWrites=true&w=majority
 PORT=3000
 NODE_ENV=development
-STRIPE_SECRET_KEY=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
+STRIPE_SECRET_KEY=sk_live_YOUR_SECRET_KEY_HERE
 ```
 
 ### 3. Inicializar Banco de Dados

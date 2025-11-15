@@ -11,7 +11,7 @@ class PaymentConfig {
   
   // ⚠️ SECURITY WARNING: Never expose secret keys in the mobile app!
   // This should ONLY be used in your backend server
-  // Backend should use: sk_live_... (configure sua chave no backend)
+  // Backend should use: sk_live_YOUR_SECRET_KEY_HERE (configure sua chave no backend)
   // ⚠️ DO NOT include the secret key in the mobile app code!
   // static const String stripeSecretKey = 'REMOVED_FOR_SECURITY'; // Use only in backend
   

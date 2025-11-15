@@ -4,7 +4,7 @@
 
 ### Stripe
 - ✅ **Chave pública configurada**: `pk_live_51STRZXEYtTHdCbedqp9M4oOaHH0Bt7HFBQdQkoRFxvkkgc78AfaD85p08BlcsuJxdO0tBRu0jlzPsJNp6HhNJEEA00wg0NJVT7`
-- ✅ **Chave secreta configurada no backend**: `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`
+- ✅ **Chave secreta configurada no backend**: `sk_live_...` (configure no arquivo .env)
 - ✅ **Price IDs configurados**: Personal, Personal Plus, Leader (Mensal e Anual)
 
 ### Mercado Pago
@@ -26,7 +26,7 @@ PORT=3000
 NODE_ENV=development
 
 # Stripe Configuration
-STRIPE_SECRET_KEY=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
+STRIPE_SECRET_KEY=sk_live_YOUR_SECRET_KEY_HERE
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
 
 # Mercado Pago Configuration

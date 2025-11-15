@@ -12,7 +12,7 @@ pk_live_51STRZXEYtTHdCbedqp9M4oOaHH0Bt7HFBQdQkoRFxvkkgc78AfaD85p08BlcsuJxdO0tBRu
 
 ### Chave Secreta (Secret Key)
 ```
-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
+sk_live_YOUR_SECRET_KEY_HERE
 ```
 - ⚠️ **NUNCA usar no app mobile**
 - ⚠️ **Usar APENAS no backend server**
@@ -40,7 +40,7 @@ sk_live_51STRZXEYtTHdCbedayOT9srrEfkFoHWNkmITJWUUqPS0O0pqSxJCuISfkrvuLUMx3dqgkts
 ### Variáveis de Ambiente
 Configure no seu backend server:
 ```bash
-STRIPE_SECRET_KEY=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
+STRIPE_SECRET_KEY=sk_live_YOUR_SECRET_KEY_HERE
 ```
 
 ### Exemplo de Backend (Node.js)
