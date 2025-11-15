@@ -9,7 +9,7 @@
 
 ### Mercado Pago
 - ✅ **Chave pública configurada**: `APP_USR-d766e8e8-fa64-4265-b19a-5295dc6a0a7f`
-- ✅ **Access token configurado no backend**: `APP_USR-962011830720089-111415-bcffcdf3b9ab0b8982cd406d845391f0-2991374520`
+- ✅ **Access token configurado no backend**: `APP_USR-...` (configure no arquivo .env)
 - ⚠️ **Planos precisam ser criados no Mercado Pago Dashboard**
 
 ## 🔧 Configuração do Backend
@@ -30,8 +30,8 @@ STRIPE_SECRET_KEY=sk_live_YOUR_SECRET_KEY_HERE
 STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret_here
 
 # Mercado Pago Configuration
-MERCADOPAGO_ACCESS_TOKEN=APP_USR-962011830720089-111415-bcffcdf3b9ab0b8982cd406d845391f0-2991374520
-MERCADOPAGO_PUBLIC_KEY=APP_USR-d766e8e8-fa64-4265-b19a-5295dc6a0a7f
+MERCADOPAGO_ACCESS_TOKEN=APP_USR-YOUR_ACCESS_TOKEN_HERE
+MERCADOPAGO_PUBLIC_KEY=APP_USR-YOUR_PUBLIC_KEY_HERE
 MERCADOPAGO_SUCCESS_URL=https://your-app.com/success
 MERCADOPAGO_FAILURE_URL=https://your-app.com/failure
 MERCADOPAGO_PENDING_URL=https://your-app.com/pending
