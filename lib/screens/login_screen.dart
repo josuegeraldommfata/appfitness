@@ -1,7 +1,6 @@
- import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/app_provider.dart';
-import '../services/mock_data_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -52,13 +51,19 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Credenciais inválidas')),
+          const SnackBar(
+            content: Text('Credenciais inválidas'),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erro ao fazer login: $e')),
+        SnackBar(
+          content: Text('Erro ao fazer login: $e'),
+          duration: const Duration(seconds: 5),
+        ),
       );
     } finally {
       if (mounted) {
@@ -77,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Colors.green[400]!, Colors.green[800]!],
+            colors: [Colors.blue[400]!, Colors.blue[800]!],
           ),
         ),
         child: Center(
@@ -97,14 +102,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     Icon(
                       Icons.restaurant_menu,
                       size: 64,
-                      color: Colors.green[600],
+                      color: Colors.blue[600],
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'Nudge',
+                      'FitLife Coach',
                       style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Colors.green[800],
+                        color: Colors.blue[800],
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -186,14 +191,40 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Email: demouser@email.com / Senha: user123',
+                            'Admin: admin@email.com / Senha: admin123',
                             style: TextStyle(color: Colors.grey[600], fontSize: 12),
                           ),
                           Text(
-                            'Admin: demoadmin@email.com / Senha: admin123',
+                            'User: user@email.com / Senha: user123',
                             style: TextStyle(color: Colors.grey[600], fontSize: 12),
                           ),
                         ],
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Register Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.pushNamed(context, '/register');
+                        },
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          side: BorderSide(color: Colors.blue[600]!),
+                        ),
+                        child: Text(
+                          'Criar conta',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.blue[600],
+                          ),
+                        ),
                       ),
                     ),
                   ],

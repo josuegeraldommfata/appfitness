@@ -6,15 +6,10 @@ const morgan = require('morgan');
 const bodyParser = require('body-parser');
 require('dotenv').config();
 
-const { connectDB } = require('./config/mongodb');
-const authRoutes = require('./routes/auth');
+// Backend APENAS para: Pagamentos (Stripe/Mercado Pago) e ChatGPT
 const stripeRoutes = require('./routes/stripe');
 const mercadoPagoRoutes = require('./routes/mercadoPago');
-const userRoutes = require('./routes/users');
-const subscriptionRoutes = require('./routes/subscriptions');
-const mealRoutes = require('./routes/meals');
-const bodyMetricsRoutes = require('./routes/bodyMetrics');
-const waterIntakeRoutes = require('./routes/waterIntake');
+const chatgptRoutes = require('./routes/chatgpt');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -65,15 +60,10 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API Routes
-app.use('/api/auth', authRoutes);
+// API Routes - APENAS Pagamentos e ChatGPT
 app.use('/api/stripe', stripeRoutes);
 app.use('/api/mercado-pago', mercadoPagoRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/subscriptions', subscriptionRoutes);
-app.use('/api/meals', mealRoutes);
-app.use('/api/body-metrics', bodyMetricsRoutes);
-app.use('/api/water-intake', waterIntakeRoutes);
+app.use('/api/chatgpt', chatgptRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -99,14 +89,15 @@ app.use((req, res) => {
 // Start server
 const startServer = async () => {
   try {
-    // Connect to MongoDB
-    await connectDB();
+    // Backend não precisa de MongoDB - apenas para pagamentos e ChatGPT
+    // Firebase é usado no app para autenticação e dados
 
     // Start server
     // Listen on 0.0.0.0 to accept connections from any IP (needed for Railway, Render, etc.)
     app.listen(PORT, '0.0.0.0', () => {
-      console.log(`🚀 Server running on port ${PORT}`);
+      console.log(`🚀 Backend running on port ${PORT}`);
       console.log(`📍 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`💳 Routes: Stripe, Mercado Pago, ChatGPT`);
       const apiUrl = process.env.RAILWAY_PUBLIC_DOMAIN 
         ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
         : `http://localhost:${PORT}`;

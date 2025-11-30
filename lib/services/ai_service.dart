@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import '../config/payment_config.dart';
 
 class AIResponse {
   final String content;
@@ -9,37 +10,30 @@ class AIResponse {
 }
 
 class AIService {
-  static const String apiKey = 'YOUR_OPENAI_API_KEY_HERE'; // Substitua pela sua chave real da OpenAI após clonar o repo
-  static const String baseUrl = 'https://api.openai.com/v1/chat/completions';
-  static const String model = 'gpt-4o-mini';
-
-  static const String systemPrompt = 'You are a helpful fitness coach for the Nudge app. Provide personalized advice on diet, exercise, water intake, and progress tracking. Keep responses concise, encouraging, and in Portuguese.';
+  // Usa o backend para ChatGPT (chave API fica no backend)
+  static String get backendUrl => PaymentConfig.backendApiUrl;
 
   Future<AIResponse?> getResponse(String prompt) async {
     try {
+      // Chamar backend que processa ChatGPT
       final response = await http.post(
-        Uri.parse(baseUrl),
+        Uri.parse('$backendUrl/api/chatgpt/message'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer $apiKey',
         },
         body: jsonEncode({
-          'model': model,
-          'messages': [
-            {'role': 'system', 'content': systemPrompt},
-            {'role': 'user', 'content': prompt},
-          ],
-          'max_tokens': 300,
-          'temperature': 0.7,
+          'message': prompt,
         }),
       );
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final content = data['choices'][0]['message']['content'];
-        return AIResponse(content: content, isUser: false);
+        if (data['success'] == true && data['response'] != null) {
+          return AIResponse(content: data['response'], isUser: false);
+        }
+        return null;
       } else {
-        print('Error: ${response.statusCode} - ${response.body}');
+        print('ChatGPT error: ${response.statusCode} - ${response.body}');
         return null;
       }
     } catch (e) {

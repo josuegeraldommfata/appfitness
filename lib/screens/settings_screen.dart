@@ -1,10 +1,49 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 import '../providers/app_provider.dart';
+import '../widgets/share_app_modal.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
+
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
+  final ImagePicker _picker = ImagePicker();
+  String? _profileImagePath;
+
+  Future<void> _pickProfileImage() async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        setState(() {
+          _profileImagePath = image.path;
+        });
+        // TODO: Upload to Firebase Storage and update user profile
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Foto de perfil atualizada!')),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao selecionar imagem: $e')),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,16 +68,44 @@ class SettingsScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             // Profile Picture
-            CircleAvatar(
-              radius: 60,
-              backgroundColor: Colors.green[100],
-              child: Text(
-                user.name[0].toUpperCase(),
-                style: TextStyle(
-                  fontSize: 48,
-                  color: Colors.green[800],
-                  fontWeight: FontWeight.bold,
-                ),
+            GestureDetector(
+              onTap: _pickProfileImage,
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 60,
+                    backgroundColor: Colors.green[100],
+                    backgroundImage: _profileImagePath != null
+                        ? FileImage(File(_profileImagePath!))
+                        : null,
+                    child: _profileImagePath == null
+                        ? Text(
+                            user.name[0].toUpperCase(),
+                            style: TextStyle(
+                              fontSize: 48,
+                              color: Colors.green[800],
+                              fontWeight: FontWeight.bold,
+                            ),
+                          )
+                        : null,
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: Colors.green[600],
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.camera_alt,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 16),
@@ -80,9 +147,9 @@ class SettingsScreen extends StatelessWidget {
                     leading: const Icon(Icons.share),
                     title: const Text('Compartilhar App'),
                     onTap: () {
-                      // TODO: Implement share app
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Compartilhar app - Em breve!')),
+                      showDialog(
+                        context: context,
+                        builder: (context) => const ShareAppModal(),
                       );
                     },
                   ),

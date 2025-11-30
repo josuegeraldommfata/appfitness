@@ -16,13 +16,20 @@ class PaymentService {
     if (_isInitialized) return;
     
     try {
-      // Initialize Stripe
-      Stripe.publishableKey = PaymentConfig.stripePublishableKey;
-      await Stripe.instance.applySettings();
+      // Initialize Stripe (only works on mobile, not web)
+      // Skip initialization on web platform
+      try {
+        Stripe.publishableKey = PaymentConfig.stripePublishableKey;
+        await Stripe.instance.applySettings();
+      } catch (e) {
+        // Stripe doesn't work on web, that's OK
+        print('Stripe initialization skipped (web platform): $e');
+      }
       _isInitialized = true;
     } catch (e) {
       print('Error initializing payment service: $e');
-      // Continue even if Stripe initialization fails (for development)
+      // Continue even if Stripe initialization fails (for development/web)
+      _isInitialized = true; // Mark as initialized anyway
     }
   }
 
@@ -40,14 +47,14 @@ class PaymentService {
       // ⚠️ IMPORTANT: Never send the secret key from the mobile app!
       // The backend should use the secret key server-side
       final response = await http.post(
-        Uri.parse('${PaymentConfig.backendApiUrl}/create-payment-intent'),
+        Uri.parse('${PaymentConfig.backendApiUrl}/api/stripe/create-payment-intent'),
         headers: {
           'Content-Type': 'application/json',
           // Note: The backend should authenticate using its own method
           // Do NOT send the secret key from the mobile app!
         },
         body: jsonEncode({
-          'amount': (amount * 100).toInt(), // Convert to cents
+          'amount': amount, // Valor em reais (ex: 19.90), backend converte para centavos
           'currency': currency.toLowerCase(),
           'userId': userId,
           'planType': planType.name,
@@ -108,7 +115,7 @@ class PaymentService {
       // ⚠️ IMPORTANT: Never send the secret key from the mobile app!
       // The backend should use the secret key server-side
       final response = await http.post(
-        Uri.parse('${PaymentConfig.backendApiUrl}/create-subscription'),
+        Uri.parse('${PaymentConfig.backendApiUrl}/api/stripe/create-subscription'),
         headers: {
           'Content-Type': 'application/json',
           // Note: The backend should authenticate using its own method

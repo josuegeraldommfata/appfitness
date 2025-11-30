@@ -47,6 +47,9 @@ dependencies:
   # Gráficos
   fl_chart: ^0.66.1
 
+  # Compartilhar
+  share_plus: ^7.2.1
+
   # Notificações locais - removido para evitar problemas de build
   # flutter_local_notifications: ^16.3.2
 

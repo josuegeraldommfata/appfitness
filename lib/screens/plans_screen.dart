@@ -5,6 +5,7 @@ import '../models/subscription.dart';
 import '../providers/subscription_provider.dart';
 import '../providers/app_provider.dart';
 import '../services/api_service.dart';
+import 'checkout_screen.dart';
 import 'package:intl/intl.dart';
 
 class PlansScreen extends StatefulWidget {
@@ -17,7 +18,6 @@ class PlansScreen extends StatefulWidget {
 class _PlansScreenState extends State<PlansScreen> {
   BillingPeriod _selectedPeriod = BillingPeriod.monthly;
   PaymentProvider _selectedPaymentProvider = PaymentProvider.stripe;
-  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
@@ -121,10 +121,10 @@ class _PlansScreenState extends State<PlansScreen> {
 
                 const SizedBox(height: 24),
 
-                // Payment Provider Selection
-                if (_selectedPeriod == BillingPeriod.monthly || 
-                    (_selectedPeriod == BillingPeriod.yearly && 
-                     Plans.allPlans.any((p) => p.yearlyPrice != null && p.yearlyPrice! > 0)))
+                // Payment Provider Selection (show for paid plans only)
+                if (Plans.allPlans.any((p) => 
+                    (p.monthlyPrice > 0 && _selectedPeriod == BillingPeriod.monthly) ||
+                    (p.yearlyPrice != null && p.yearlyPrice! > 0 && _selectedPeriod == BillingPeriod.yearly)))
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -135,6 +135,11 @@ class _PlansScreenState extends State<PlansScreen> {
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.bold,
                         ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Selecione como deseja pagar:',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
                       ),
                       const SizedBox(height: 16),
                       Row(
@@ -203,23 +208,17 @@ class _PlansScreenState extends State<PlansScreen> {
         );
       }
     } else {
-      // Paid plan - show payment dialog
-      setState(() {
-        _isLoading = true;
-      });
-      
-      try {
-        await subscriptionProvider.subscribeToPlan(
-          plan.type,
-          _selectedPeriod,
-          _selectedPaymentProvider,
-          context,
-        );
-      } finally {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      // Paid plan - open checkout screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CheckoutScreen(
+            plan: plan,
+            billingPeriod: _selectedPeriod,
+            source: 'plans',
+          ),
+        ),
+      );
     }
   }
 

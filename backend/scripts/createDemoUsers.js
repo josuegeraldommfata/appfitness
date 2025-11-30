@@ -9,8 +9,48 @@ const User = require('../models/User');
 // Demo users data
 const demoUsers = [
   {
+    email: 'admin@email.com',
+    password: 'admin123',
+    name: 'Admin',
+    birthDate: new Date('1990-01-01'),
+    height: 175,
+    weight: 75,
+    bodyType: 'mesomorfo',
+    goal: 'manutenção',
+    targetWeight: 75,
+    dailyCalorieGoal: 2000,
+    macroGoals: {
+      protein: 150,
+      carbs: 200,
+      fat: 65,
+    },
+    role: 'admin',
+    herbalifeId: null,
+    currentPlan: 'free',
+  },
+  {
+    email: 'user@email.com',
+    password: 'user123',
+    name: 'User',
+    birthDate: new Date('1995-05-15'),
+    height: 170,
+    weight: 70,
+    bodyType: 'ectomorfo',
+    goal: 'perda de peso',
+    targetWeight: 65,
+    dailyCalorieGoal: 1800,
+    macroGoals: {
+      protein: 120,
+      carbs: 180,
+      fat: 50,
+    },
+    role: 'user',
+    herbalifeId: null,
+    currentPlan: 'free',
+  },
+  {
     email: 'demoadmin@email.com',
-    password: 'admin123', // Same password as admin@test.com for consistency
+    password: 'admin123',
     name: 'Demo Admin',
     birthDate: new Date('1990-01-01'),
     height: 175,
@@ -30,7 +70,7 @@ const demoUsers = [
   },
   {
     email: 'demouser@email.com',
-    password: 'user123', // Same password as user@test.com for consistency
+    password: 'user123',
     name: 'Demo User',
     birthDate: new Date('1995-05-15'),
     height: 170,
@@ -144,8 +184,10 @@ const createDemoUsers = async () => {
 
     console.log('✅ Demo users creation completed!');
     console.log('\n📋 Demo Users Created:');
-    console.log('   1. Admin: demoadmin@email.com (Password: admin123)');
-    console.log('   2. User: demouser@email.com (Password: user123)');
+    console.log('   1. Admin: admin@email.com (Password: admin123)');
+    console.log('   2. User: user@email.com (Password: user123)');
+    console.log('   3. Admin: demoadmin@email.com (Password: admin123)');
+    console.log('   4. User: demouser@email.com (Password: user123)');
     console.log('\n✅ Users are ready to use!');
 
     process.exit(0);

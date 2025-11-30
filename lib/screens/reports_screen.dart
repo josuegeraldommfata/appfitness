@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:intl/intl.dart';
 import '../providers/app_provider.dart';
 
 class ReportsScreen extends StatefulWidget {
@@ -12,6 +14,7 @@ class ReportsScreen extends StatefulWidget {
 class _ReportsScreenState extends State<ReportsScreen> {
   DateTime _selectedDate = DateTime.now();
   Map<String, dynamic> _reportData = {};
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -19,28 +22,36 @@ class _ReportsScreenState extends State<ReportsScreen> {
     _loadReportData();
   }
 
-  void _loadReportData() {
+  Future<void> _loadReportData() async {
     final provider = Provider.of<AppProvider>(context, listen: false);
-    // Mock report data - in a real app, this would come from Firestore analytics
     setState(() {
-      _reportData = {
-        'totalUsers': provider.userCount,
-        'activeUsers': provider.activeUsersCount,
-        'totalMeals': provider.totalMealsToday,
-        'averageCalories': 1850,
-        'topFoods': [
-          {'name': 'Arroz Branco', 'count': 45},
-          {'name': 'Frango Grelhado', 'count': 38},
-          {'name': 'Salada Verde', 'count': 32},
-        ],
-        'userGrowth': [
-          {'month': 'Jan', 'users': 120},
-          {'month': 'Fev', 'users': 145},
-          {'month': 'Mar', 'users': 168},
-          {'month': 'Abr', 'users': 192},
-        ],
-      };
+      _isLoading = true;
     });
+    
+    try {
+      // Buscar dados reais do Firebase para a data selecionada
+      final reportData = await provider.getReportDataForDate(_selectedDate);
+      setState(() {
+        _reportData = reportData;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('Error loading report data: $e');
+      // Fallback para dados básicos mesmo se houver erro
+      setState(() {
+        _reportData = {
+          'totalUsers': provider.userCount,
+          'activeUsers': provider.activeUsersCount,
+          'totalMeals': 0,
+          'averageCalories': 0,
+          'topFoods': [],
+          'userGrowth': [],
+          'revenue': 0.0,
+          'subscriptions': [],
+        };
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -69,18 +80,44 @@ class _ReportsScreenState extends State<ReportsScreen> {
             },
             tooltip: 'Selecionar data',
           ),
-          IconButton(
+          PopupMenuButton<String>(
             icon: const Icon(Icons.download),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Relatório baixado - Em breve!')),
-              );
-            },
             tooltip: 'Baixar relatório',
+            onSelected: (value) {
+              if (value == 'pdf') {
+                _exportToPDF();
+              } else if (value == 'excel') {
+                _exportToExcel();
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'pdf',
+                child: Row(
+                  children: [
+                    Icon(Icons.picture_as_pdf, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Exportar PDF'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'excel',
+                child: Row(
+                  children: [
+                    Icon(Icons.table_chart, color: Colors.green),
+                    SizedBox(width: 8),
+                    Text('Exportar Excel'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
-      body: SingleChildScrollView(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,11 +303,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Exportando para PDF...')),
-                      );
-                    },
+                    onPressed: _exportToPDF,
                     icon: const Icon(Icons.picture_as_pdf),
                     label: const Text('PDF'),
                     style: ElevatedButton.styleFrom(
@@ -282,11 +315,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                 const SizedBox(width: 16),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Exportando para Excel...')),
-                      );
-                    },
+                    onPressed: _exportToExcel,
                     icon: const Icon(Icons.table_chart),
                     label: const Text('Excel'),
                     style: ElevatedButton.styleFrom(
@@ -333,4 +362,86 @@ class _ReportsScreenState extends State<ReportsScreen> {
       ),
     );
   }
+
+  Future<void> _exportToPDF() async {
+    final dateStr = DateFormat('dd/MM/yyyy').format(_selectedDate);
+    final reportText = _generateReportText();
+    
+    final pdfContent = '''
+RELATÓRIO NUDGE - $dateStr
+
+$_reportDivider
+
+$reportText
+
+$_reportDivider
+Gerado em: ${DateFormat('dd/MM/yyyy HH:mm').format(DateTime.now())}
+''';
+
+    await Share.share(
+      pdfContent,
+      subject: 'Relatório NUDGE - $dateStr',
+    );
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Relatório compartilhado!')),
+      );
+    }
+  }
+
+  Future<void> _exportToExcel() async {
+    final dateStr = DateFormat('dd/MM/yyyy').format(_selectedDate);
+    final csvContent = _generateCSVContent();
+    
+    await Share.share(
+      csvContent,
+      subject: 'Relatório NUDGE - $dateStr.csv',
+    );
+    
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Relatório CSV compartilhado!')),
+      );
+    }
+  }
+
+  String _generateReportText() {
+    return '''
+MÉTRICAS PRINCIPAIS
+Total de Usuários: ${_reportData['totalUsers'] ?? 0}
+Usuários Ativos: ${_reportData['activeUsers'] ?? 0}
+Refeições Registradas: ${_reportData['totalMeals'] ?? 0}
+Calorias Médias: ${_reportData['averageCalories'] ?? 0} kcal
+Receita do Dia: R\$ ${(_reportData['revenue'] ?? 0.0).toStringAsFixed(2)}
+Assinaturas Ativas: ${_reportData['subscriptions'] ?? 0}
+
+ALIMENTOS MAIS CONSUMIDOS
+${(_reportData['topFoods'] as List?)?.map((f) => '${f['name']}: ${f['count']} vezes').join('\n') ?? 'Nenhum dado disponível'}
+''';
+  }
+
+  String _generateCSVContent() {
+    final lines = <String>[
+      'Relatório NUDGE - ${DateFormat('dd/MM/yyyy').format(_selectedDate)}',
+      '',
+      'Métrica,Valor',
+      'Total de Usuários,${_reportData['totalUsers'] ?? 0}',
+      'Usuários Ativos,${_reportData['activeUsers'] ?? 0}',
+      'Refeições Registradas,${_reportData['totalMeals'] ?? 0}',
+      'Calorias Médias,${_reportData['averageCalories'] ?? 0}',
+      'Receita do Dia,${_reportData['revenue'] ?? 0.0}',
+      'Assinaturas Ativas,${_reportData['subscriptions'] ?? 0}',
+      '',
+      'Alimento,Quantidade',
+    ];
+    
+    for (var food in (_reportData['topFoods'] as List?) ?? []) {
+      lines.add('${food['name']},${food['count']}');
+    }
+    
+    return lines.join('\n');
+  }
+
+  String get _reportDivider => '─' * 50;
 }

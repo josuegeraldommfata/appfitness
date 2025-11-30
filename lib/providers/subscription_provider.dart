@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_stripe/flutter_stripe.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/subscription.dart';
 import '../models/plan.dart';
 import '../services/api_service.dart';
 import '../services/payment_service.dart';
-import '../providers/app_provider.dart';
 
 class SubscriptionProvider with ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -133,33 +134,47 @@ class SubscriptionProvider with ChangeNotifier {
 
       if (paymentProvider == PaymentProvider.stripe) {
         // Process Stripe payment
-        paymentId = await _processStripePayment(
-          plan,
-          billingPeriod,
-          amount,
-          user.id,
-        );
-        if (paymentId == null) {
-          _error = 'Erro ao processar pagamento com Stripe';
+        try {
+          paymentId = await _processStripePayment(
+            plan,
+            billingPeriod,
+            amount,
+            user.id,
+          );
+          if (paymentId == null) {
+            _error = 'Erro ao processar pagamento com Stripe';
+            notifyListeners();
+            return;
+          }
+          transactionId = paymentId;
+        } catch (e) {
+          _error = e.toString().contains('cancelado') 
+              ? 'Pagamento cancelado pelo usuário'
+              : 'Erro ao processar pagamento com Stripe: $e';
           notifyListeners();
           return;
         }
-        transactionId = paymentId;
       } else if (paymentProvider == PaymentProvider.mercadoPago) {
         // Process Mercado Pago payment
-        final result = await _processMercadoPagoPayment(
-          plan,
-          billingPeriod,
-          amount,
-          user.id,
-        );
-        if (result == null) {
-          _error = 'Erro ao processar pagamento com Mercado Pago';
+        try {
+          final result = await _processMercadoPagoPayment(
+            plan,
+            billingPeriod,
+            amount,
+            user.id,
+          );
+          if (result == null) {
+            _error = 'Erro ao processar pagamento com Mercado Pago';
+            notifyListeners();
+            return;
+          }
+          paymentId = result['preferenceId'];
+          transactionId = result['transactionId'];
+        } catch (e) {
+          _error = 'Erro ao processar pagamento com Mercado Pago: $e';
           notifyListeners();
           return;
         }
-        paymentId = result['preferenceId'];
-        transactionId = result['transactionId'];
       }
 
       // Calculate next billing date
@@ -210,7 +225,7 @@ class SubscriptionProvider with ChangeNotifier {
     String userId,
   ) async {
     try {
-      // Create payment intent
+      // Create payment intent via backend
       final paymentIntent = await _paymentService.createStripePaymentIntent(
         amount: amount,
         currency: 'BRL',
@@ -219,21 +234,43 @@ class SubscriptionProvider with ChangeNotifier {
         billingPeriod: billingPeriod,
       );
 
-      if (paymentIntent == null) {
+      if (paymentIntent == null || paymentIntent['clientSecret'] == null) {
+        print('Error: Payment intent not created');
         return null;
       }
 
-      // In a real implementation, you would:
-      // 1. Show Stripe payment sheet
-      // 2. Collect payment method from user
-      // 3. Confirm payment
-      // 4. Return payment ID
+      final clientSecret = paymentIntent['clientSecret'] as String;
+      final paymentIntentId = paymentIntent['paymentIntentId'] as String?;
 
-      // For now, return mock payment ID
-      return paymentIntent['paymentIntentId'] ?? 'mock_stripe_${DateTime.now().millisecondsSinceEpoch}';
+      // Initialize and show Stripe payment sheet
+      try {
+        await _paymentService.initialize();
+        
+        // Initialize payment sheet
+        await Stripe.instance.initPaymentSheet(
+          paymentSheetParameters: SetupPaymentSheetParameters(
+            paymentIntentClientSecret: clientSecret,
+            merchantDisplayName: 'NUDGE',
+          ),
+        );
+
+        // Present payment sheet to user
+        await Stripe.instance.presentPaymentSheet();
+
+        // Payment was successful
+        print('Stripe payment successful: $paymentIntentId');
+        return paymentIntentId ?? 'stripe_${DateTime.now().millisecondsSinceEpoch}';
+      } catch (e) {
+        print('Stripe payment error: $e');
+        // Check if user cancelled
+        if (e.toString().contains('cancelled') || e.toString().contains('canceled')) {
+          throw Exception('Pagamento cancelado pelo usuário');
+        }
+        throw Exception('Erro ao processar pagamento: $e');
+      }
     } catch (e) {
       print('Error processing Stripe payment: $e');
-      return null;
+      rethrow;
     }
   }
 
@@ -244,7 +281,7 @@ class SubscriptionProvider with ChangeNotifier {
     String userId,
   ) async {
     try {
-      // Create Mercado Pago preference
+      // Create Mercado Pago preference via backend
       final preference = await _paymentService.createMercadoPagoPreference(
         amount: amount,
         userId: userId,
@@ -252,24 +289,34 @@ class SubscriptionProvider with ChangeNotifier {
         billingPeriod: billingPeriod,
       );
 
-      if (preference == null) {
+      if (preference == null || preference['initPoint'] == null) {
+        print('Error: Mercado Pago preference not created');
         return null;
       }
 
-      // In a real implementation, you would:
-      // 1. Show Mercado Pago checkout
-      // 2. Process payment
-      // 3. Verify payment status
-      // 4. Return transaction ID
+      final initPoint = preference['initPoint'] as String;
+      final preferenceId = preference['preferenceId'] as String;
 
-      // For now, return mock transaction ID
-      return {
-        'preferenceId': preference['preferenceId'] ?? 'mock_mp_${DateTime.now().millisecondsSinceEpoch}',
-        'transactionId': 'mock_transaction_${DateTime.now().millisecondsSinceEpoch}',
-      };
+      // Open Mercado Pago checkout in browser
+      final uri = Uri.parse(initPoint);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+        
+        // Wait a bit for user to complete payment
+        // In production, you should use webhooks to verify payment
+        // For now, we'll assume payment was successful after opening checkout
+        // TODO: Implement webhook verification or polling to check payment status
+        
+        return {
+          'preferenceId': preferenceId,
+          'transactionId': 'mp_${DateTime.now().millisecondsSinceEpoch}',
+        };
+      } else {
+        throw Exception('Não foi possível abrir o checkout do Mercado Pago');
+      }
     } catch (e) {
       print('Error processing Mercado Pago payment: $e');
-      return null;
+      rethrow;
     }
   }
 

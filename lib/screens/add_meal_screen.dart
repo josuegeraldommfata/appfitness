@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import '../providers/app_provider.dart';
 import '../models/meal.dart';
+import '../services/firebase_service.dart';
 
 class AddMealScreen extends StatefulWidget {
   const AddMealScreen({super.key});
@@ -16,6 +17,9 @@ class _AddMealScreenState extends State<AddMealScreen> {
   final List<Map<String, dynamic>> _selectedFoods = [];
   final TextEditingController _searchController = TextEditingController();
   final ImagePicker _picker = ImagePicker();
+  final FirebaseService _firebaseService = FirebaseService();
+  List<Map<String, dynamic>> _foods = [];
+  bool _isLoadingFoods = false;
 
   final List<String> _mealTypes = [
     'Café da Manhã',
@@ -24,54 +28,48 @@ class _AddMealScreenState extends State<AddMealScreen> {
     'Lanche',
   ];
 
-  final List<Map<String, dynamic>> _mockFoods = [
-    {
-      'name': 'Aveia',
-      'calories': 150,
-      'protein': 5.0,
-      'carbs': 27.0,
-      'fat': 3.0,
-      'serving': '100g',
-    },
-    {
-      'name': 'Banana',
-      'calories': 105,
-      'protein': 1.3,
-      'carbs': 27.0,
-      'fat': 0.4,
-      'serving': '1 unidade',
-    },
-    {
-      'name': 'Peito de Frango',
-      'calories': 165,
-      'protein': 31.0,
-      'carbs': 0.0,
-      'fat': 3.6,
-      'serving': '100g',
-    },
-    {
-      'name': 'Arroz Branco',
-      'calories': 130,
-      'protein': 2.7,
-      'carbs': 28.0,
-      'fat': 0.3,
-      'serving': '100g',
-    },
-    {
-      'name': 'Brócolis',
-      'calories': 55,
-      'protein': 3.7,
-      'carbs': 11.0,
-      'fat': 0.6,
-      'serving': '100g',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadFoods();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Receber tipo de refeição como argumento - deve ser feito aqui, não no initState
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is String && _mealType != args) {
+      setState(() {
+        _mealType = args;
+      });
+    }
+  }
+
+  Future<void> _loadFoods() async {
+    setState(() {
+      _isLoadingFoods = true;
+    });
+    try {
+      // Buscar todos os alimentos do Firebase
+      final allFoods = await _firebaseService.getAllFoods();
+      setState(() {
+        _foods = allFoods;
+        _isLoadingFoods = false;
+      });
+    } catch (e) {
+      print('Error loading foods: $e');
+      setState(() {
+        _isLoadingFoods = false;
+      });
+    }
+  }
 
   List<Map<String, dynamic>> get _filteredFoods {
     final query = _searchController.text.toLowerCase();
-    if (query.isEmpty) return _mockFoods;
-    return _mockFoods.where((food) =>
-        food['name'].toLowerCase().contains(query)).toList();
+    if (query.isEmpty) return _foods;
+    return _foods.where((food) =>
+        food['name']?.toString().toLowerCase().contains(query) ?? false).toList();
   }
 
   void _addFood(Map<String, dynamic> food) {
@@ -149,7 +147,7 @@ class _AddMealScreenState extends State<AddMealScreen> {
     }
   }
 
-  void _saveMeal() {
+  Future<void> _saveMeal() async {
     if (_selectedFoods.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Adicione pelo menos um alimento')),
@@ -178,13 +176,42 @@ class _AddMealScreenState extends State<AddMealScreen> {
     );
 
     final provider = Provider.of<AppProvider>(context, listen: false);
-    provider.addMeal(meal);
-
+    
+    // Mostrar loading
     if (mounted) {
-      Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Refeição $_mealType adicionada!')),
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(),
+        ),
       );
+    }
+
+    try {
+      // Aguardar o salvamento e recarregamento dos dados
+      await provider.addMeal(meal);
+      
+      if (mounted) {
+        Navigator.pop(context); // Fechar loading
+        Navigator.pop(context); // Fechar tela de adicionar
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Refeição $_mealType adicionada!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context); // Fechar loading
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao salvar refeição: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -193,17 +220,25 @@ class _AddMealScreenState extends State<AddMealScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Adicionar Refeição'),
+        backgroundColor: Colors.blue[600],
+        foregroundColor: Colors.white,
         actions: [
           IconButton(
             icon: const Icon(Icons.qr_code_scanner),
             onPressed: _scanBarcode,
             tooltip: 'Escanear Código de Barras',
           ),
-          TextButton(
-            onPressed: _saveMeal,
-            child: const Text(
-              'Salvar',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: ElevatedButton.icon(
+              onPressed: _saveMeal,
+              icon: const Icon(Icons.save, size: 18),
+              label: const Text('Salvar'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.blue[600],
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              ),
             ),
           ),
         ],
@@ -286,11 +321,102 @@ class _AddMealScreenState extends State<AddMealScreen> {
               ),
             ),
 
-          // Content
+          // Content - Sempre mostrar ambos: alimentos selecionados E lista para adicionar mais
           Expanded(
-            child: _selectedFoods.isEmpty
-                ? _buildFoodList()
-                : _buildSelectedFoodsList(),
+            child: _isLoadingFoods
+                ? const Center(child: CircularProgressIndicator())
+                : Column(
+                    children: [
+                      // Alimentos Selecionados (se houver)
+                      if (_selectedFoods.isNotEmpty)
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Alimentos Adicionados (${_selectedFoods.length})',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    TextButton.icon(
+                                      onPressed: () {
+                                        setState(() {
+                                          _selectedFoods.clear();
+                                        });
+                                      },
+                                      icon: const Icon(Icons.clear, size: 18),
+                                      label: const Text('Limpar tudo'),
+                                      style: TextButton.styleFrom(
+                                        foregroundColor: Colors.red,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Expanded(
+                                child: _buildSelectedFoodsList(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      
+                      // Divisor e botão para adicionar mais
+                      if (_selectedFoods.isNotEmpty) ...[
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Row(
+                            children: [
+                              Expanded(child: Divider(color: Colors.grey[300])),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: Text(
+                                  'Adicionar mais alimentos',
+                                  style: TextStyle(
+                                    color: Colors.grey[600],
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                              Expanded(child: Divider(color: Colors.grey[300])),
+                            ],
+                          ),
+                        ),
+                      ],
+                      
+                      // Lista de Alimentos Disponíveis
+                      Expanded(
+                        flex: _selectedFoods.isEmpty ? 1 : 1,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (_selectedFoods.isNotEmpty)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                child: const Text(
+                                  'Buscar e Adicionar Alimentos',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
+                              ),
+                            Expanded(
+                              child: _buildFoodList(),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         ],
       ),
@@ -298,20 +424,49 @@ class _AddMealScreenState extends State<AddMealScreen> {
   }
 
   Widget _buildFoodList() {
+    if (_filteredFoods.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.restaurant, size: 64, color: Colors.grey[400]),
+            const SizedBox(height: 16),
+            Text(
+              _foods.isEmpty 
+                  ? 'Nenhum alimento encontrado no banco de dados'
+                  : 'Nenhum alimento encontrado com essa busca',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          ],
+        ),
+      );
+    }
     return ListView.builder(
       itemCount: _filteredFoods.length,
       itemBuilder: (context, index) {
         final food = _filteredFoods[index];
+        final calories = food['calories'] ?? 0;
+        final protein = food['protein'] ?? 0.0;
+        final carbs = food['carbs'] ?? 0.0;
+        final fat = food['fat'] ?? 0.0;
+        final serving = food['serving'] ?? '100g';
         return Card(
           margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
           child: ListTile(
-            title: Text(food['name']),
+            title: Text(food['name'] ?? 'Alimento'),
             subtitle: Text(
-              '${food['calories']} kcal • ${food['protein']}g P • ${food['carbs']}g C • ${food['fat']}g G • ${food['serving']}',
+              '$calories kcal • ${protein}g P • ${carbs}g C • ${fat}g G • $serving',
             ),
             trailing: IconButton(
               icon: const Icon(Icons.add),
-              onPressed: () => _addFood(food),
+              onPressed: () => _addFood({
+                'name': food['name'] ?? 'Alimento',
+                'calories': calories,
+                'protein': protein,
+                'carbs': carbs,
+                'fat': fat,
+                'serving': serving,
+              }),
             ),
           ),
         );

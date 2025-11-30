@@ -17,9 +17,12 @@ class _AIChatScreenState extends State<AIChatScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFE3F2FD),
       appBar: AppBar(
-        title: const Text('Assistente Fitness IA'),
-        backgroundColor: Theme.of(context).primaryColor,
+        title: const Text('FitLife Coach'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
       ),
       body: Column(
         children: [

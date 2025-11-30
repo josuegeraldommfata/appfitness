@@ -39,6 +39,11 @@ class ApiService {
           'email': email,
           'password': password,
         }),
+      ).timeout(
+        const Duration(seconds: 10),
+        onTimeout: () {
+          throw Exception('Timeout: Backend não respondeu. Verifique se está rodando.');
+        },
       );
 
       if (response.statusCode == 200) {
@@ -47,12 +52,23 @@ class ApiService {
         _currentUser = model.User.fromJson(data['user']);
         return data;
       } else {
-        print('Login error: ${response.statusCode} - ${response.body}');
-        return null;
+        final errorData = jsonDecode(response.body);
+        final errorMessage = errorData['error'] ?? 'Erro desconhecido';
+        print('Login error: ${response.statusCode} - $errorMessage');
+        print('Response body: ${response.body}');
+        return {'error': errorMessage, 'statusCode': response.statusCode};
       }
+    } on http.ClientException catch (e) {
+      print('Login error (conexão): $e');
+      final errorMsg = 'Erro de conexão com $baseUrl\n\n'
+          'Possíveis causas:\n'
+          '• Backend não está rodando (execute: cd backend && npm start)\n'
+          '• URL incorreta para o emulador\n'
+          '• Genymotion: tente usar IP real (192.168.131.2:3000) ao invés de 10.0.2.2:3000';
+      return {'error': errorMsg};
     } catch (e) {
       print('Login error: $e');
-      return null;
+      return {'error': 'Erro ao fazer login: $e'};
     }
   }
 

@@ -23,6 +23,13 @@ class _ProgressScreenState extends State<ProgressScreen> {
       appBar: AppBar(
         title: const Text('Progresso'),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.analytics),
+            onPressed: () {
+              Navigator.pushNamed(context, '/nutritional_analysis');
+            },
+            tooltip: 'Análise Nutricional',
+          ),
           DropdownButton<String>(
             value: _selectedPeriod,
             dropdownColor: Colors.green[600],

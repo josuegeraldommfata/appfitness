@@ -14,6 +14,8 @@ class User {
   final String role; // 'user' or 'admin'
   final String? herbalifeId; // ID Herbalife para plano Fit
   final String? currentPlan; // PlanType name
+  final String? referralCode; // Código único de referência
+  final String? referredBy; // ID do usuário que indicou (referralCode do indicador)
 
   User({
     required this.id,
@@ -31,6 +33,8 @@ class User {
     this.role = 'user',
     this.herbalifeId,
     this.currentPlan,
+    this.referralCode,
+    this.referredBy,
   });
 
   int get age => DateTime.now().year - birthDate.year;
@@ -53,6 +57,8 @@ class User {
     String? role,
     String? herbalifeId,
     String? currentPlan,
+    String? referralCode,
+    String? referredBy,
   }) {
     return User(
       id: id ?? this.id,
@@ -70,6 +76,8 @@ class User {
       role: role ?? this.role,
       herbalifeId: herbalifeId ?? this.herbalifeId,
       currentPlan: currentPlan ?? this.currentPlan,
+      referralCode: referralCode ?? this.referralCode,
+      referredBy: referredBy ?? this.referredBy,
     );
   }
 
@@ -90,26 +98,36 @@ class User {
       'role': role,
       'herbalifeId': herbalifeId,
       'currentPlan': currentPlan,
+      'referralCode': referralCode,
+      'referredBy': referredBy,
     };
   }
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id'],
-      name: json['name'],
-      email: json['email'],
+      id: json['id'] ?? json['_id'] ?? '',
+      name: json['name'] ?? '',
+      email: json['email'] ?? '',
       photoUrl: json['photoUrl'],
-      birthDate: DateTime.parse(json['birthDate']),
-      height: json['height'],
-      weight: json['weight'],
-      bodyType: json['bodyType'],
-      goal: json['goal'],
-      targetWeight: json['targetWeight'],
-      dailyCalorieGoal: json['dailyCalorieGoal'],
-      macroGoals: Map<String, double>.from(json['macroGoals']),
+      birthDate: json['birthDate'] != null 
+          ? (json['birthDate'] is String 
+              ? DateTime.parse(json['birthDate']) 
+              : (json['birthDate'] as dynamic).toDate())
+          : DateTime.now(),
+      height: (json['height'] ?? 0).toDouble(),
+      weight: (json['weight'] ?? 0).toDouble(),
+      bodyType: json['bodyType'] ?? 'mesomorfo',
+      goal: json['goal'] ?? 'manutenção',
+      targetWeight: (json['targetWeight'] ?? 0).toDouble(),
+      dailyCalorieGoal: json['dailyCalorieGoal'] ?? 2000,
+      macroGoals: json['macroGoals'] != null 
+          ? Map<String, double>.from(json['macroGoals'].map((key, value) => MapEntry(key, (value ?? 0).toDouble())))
+          : {'protein': 150.0, 'carbs': 200.0, 'fat': 65.0},
       role: json['role'] ?? 'user',
       herbalifeId: json['herbalifeId'],
       currentPlan: json['currentPlan'],
+      referralCode: json['referralCode'],
+      referredBy: json['referredBy'],
     );
   }
 }

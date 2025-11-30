@@ -59,6 +59,18 @@ router.post('/create-preference', async (req, res) => {
         planType: planType,
         billingPeriod: billingPeriod,
       },
+      payment_methods: {
+        excluded_payment_methods: [],
+        excluded_payment_types: [],
+        installments: 1,
+      },
+      // Enable PIX payment method
+      payment_methods_configurations: [
+        {
+          id: 'pix',
+          enabled: true,
+        },
+      ],
       back_urls: {
         success: process.env.MERCADOPAGO_SUCCESS_URL || 'https://your-app.com/success',
         failure: process.env.MERCADOPAGO_FAILURE_URL || 'https://your-app.com/failure',
@@ -69,15 +81,82 @@ router.post('/create-preference', async (req, res) => {
 
     const response = await preferenceClient.create({ body });
 
+    // Get PIX payment data if available
+    let pixQrCode = null;
+    let pixCopyPaste = null;
+
+    // Try to get PIX payment data from the preference
+    // Note: PIX data is usually available after creating a payment, not a preference
+    // For now, we'll return the preference and the frontend can create a payment with PIX
+    // Or you can create a payment directly here if needed
+
     res.json({
       preferenceId: response.id,
       initPoint: response.init_point,
       sandboxInitPoint: response.sandbox_init_point,
+      pixQrCode: pixQrCode,
+      pixCopyPaste: pixCopyPaste,
     });
   } catch (error) {
     console.error('Error creating Mercado Pago preference:', error);
     res.status(500).json({
       error: 'Failed to create Mercado Pago preference',
+      message: error.message,
+    });
+  }
+});
+
+// Create PIX Payment
+router.post('/create-pix-payment', async (req, res) => {
+  try {
+    // Check if Mercado Pago is configured
+    if (!paymentClient) {
+      return res.status(503).json({
+        error: 'Mercado Pago não está configurado',
+        message: 'MERCADOPAGO_ACCESS_TOKEN não foi definido',
+      });
+    }
+
+    const { amount, userId, planType, billingPeriod } = req.body;
+
+    if (!amount || !userId || !planType || !billingPeriod) {
+      return res.status(400).json({
+        error: 'Missing required fields: amount, userId, planType, billingPeriod',
+      });
+    }
+
+    // Create PIX payment - New SDK v2.x format
+    const paymentBody = {
+      transaction_amount: parseFloat(amount),
+      description: `Plano ${planType} - ${billingPeriod}`,
+      payment_method_id: 'pix',
+      payer: {
+        email: userId, // You should get user email from database
+      },
+      metadata: {
+        userId: userId,
+        planType: planType,
+        billingPeriod: billingPeriod,
+      },
+    };
+
+    const payment = await paymentClient.create({ body: paymentBody });
+
+    // Get PIX data from payment response
+    const pixQrCode = payment.point_of_interaction?.transaction_data?.qr_code || null;
+    const pixCopyPaste = payment.point_of_interaction?.transaction_data?.qr_code_base64 || null;
+
+    res.json({
+      paymentId: payment.id,
+      status: payment.status,
+      pixQrCode: pixQrCode,
+      pixCopyPaste: pixCopyPaste,
+      transactionAmount: payment.transaction_amount,
+    });
+  } catch (error) {
+    console.error('Error creating PIX payment:', error);
+    res.status(500).json({
+      error: 'Failed to create PIX payment',
       message: error.message,
     });
   }

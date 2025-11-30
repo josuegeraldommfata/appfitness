@@ -25,8 +25,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final provider = Provider.of<AppProvider>(context);
 
     return Scaffold(
+      backgroundColor: const Color(0xFFE3F2FD), // Azul claro
       appBar: AppBar(
-        title: const Text('Dashboard Admin'),
+        title: const Text('FitLife Coach - Admin'),
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black,
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.logout),
@@ -57,7 +61,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       'Bem-vindo, Admin!',
                       style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                         fontWeight: FontWeight.bold,
-                        color: Colors.green[800],
+                        color: Colors.blue[800],
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -123,7 +127,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           Icon(
                             Icons.restaurant,
                             size: 32,
-                            color: Colors.green[600],
+                            color: Colors.blue[600],
                           ),
                           const SizedBox(height: 8),
                           Text(
@@ -169,14 +173,32 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   Icons.people,
                   Colors.blue,
                   () {
-                    _showUserManagementDialog(context, provider);
+                    Navigator.pushNamed(context, '/manage_users');
+                  },
+                ),
+                _buildAdminActionCard(
+                  context,
+                  'Chat GPT',
+                  Icons.chat,
+                  Colors.green,
+                  () {
+                    Navigator.pushNamed(context, '/ai_chat');
+                  },
+                ),
+                _buildAdminActionCard(
+                  context,
+                  'Planos e Assinaturas',
+                  Icons.card_membership,
+                  Colors.purple,
+                  () {
+                    Navigator.pushNamed(context, '/plans');
                   },
                 ),
                 _buildAdminActionCard(
                   context,
                   'Relatórios',
                   Icons.analytics,
-                  Colors.purple,
+                  Colors.indigo,
                   () {
                     Navigator.push(
                       context,
@@ -199,7 +221,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   Icons.notifications,
                   Colors.red,
                   () {
-                    Navigator.pushNamed(context, '/notifications');
+                    Navigator.pushNamed(context, '/admin_notifications');
                   },
                 ),
               ],
@@ -229,7 +251,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   final user = provider.allUsers[index];
                   return ListTile(
                     leading: CircleAvatar(
-                      backgroundColor: Colors.green[100],
+                      backgroundColor: Colors.blue[100],
                       child: Text(user.name[0].toUpperCase()),
                     ),
                     title: Text(user.name),
@@ -303,21 +325,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  void _showUserManagementDialog(BuildContext context, AppProvider provider) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Gerenciar Usuários'),
-        content: const Text('Aqui você pode visualizar e gerenciar todos os usuários do sistema.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('Fechar'),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _confirmDeleteUser(BuildContext context, AppProvider provider, User user) {
     showDialog(

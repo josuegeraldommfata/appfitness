@@ -37,8 +37,18 @@ class PaymentConfig {
   // 
   // ⚠️ NUNCA use localhost quando publicar na Play Store!
   // O app na Play Store precisa de uma URL pública (HTTPS)
-  // static const String backendApiUrl = 'http://localhost:3000'; // DESENVOLVIMENTO - Emulador
-  static const String backendApiUrl = 'http://192.168.100.158:3000'; // TESTE - Dispositivo físico (mesma rede WiFi)
+  // ⚠️ IMPORTANTE: Atualize o IP conforme necessário
+  // Para EMULADOR (Genymotion/Android Studio): 
+  //   - Tente primeiro: 'http://10.0.2.2:3000' (padrão Android)
+  //   - Se não funcionar: use o IP real da máquina (ex: 'http://192.168.131.2:3000')
+  // Para DISPOSITIVO FÍSICO: use o IP da sua rede local (ex: 'http://192.168.131.2:3000')
+  // Para PRODUÇÃO: use URL HTTPS do servidor (ex: 'https://seu-backend.onrender.com')
+  
+  // ⚠️ GENYMOTION: Alguns Genymotion têm problemas com 10.0.2.2, use o IP real da máquina
+  // static const String backendApiUrl = 'http://10.0.2.2:3000'; // ANDROID STUDIO EMULATOR - Padrão
+  static const String backendApiUrl = 'http://192.168.131.2:3000'; // GENYMOTION - IP real da máquina host (funciona melhor)
+  // static const String backendApiUrl = 'http://192.168.131.2:3000'; // DISPOSITIVO FÍSICO - Mesma rede WiFi
+  // static const String backendApiUrl = 'http://localhost:3000'; // iOS Simulator
   // static const String backendApiUrl = 'https://seu-backend.onrender.com'; // PRODUÇÃO - Descomente após deploy na nuvem
   
   // Stripe Price IDs

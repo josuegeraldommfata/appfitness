@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../providers/app_provider.dart';
 
 class NotificationsScreen extends StatefulWidget {
@@ -16,46 +17,62 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void initState() {
     super.initState();
     _loadNotifications();
+    // Listen for new notifications
+    _setupNotificationListener();
   }
 
-  void _loadNotifications() {
-    // Mock notifications - in a real app, this would come from Firestore
-    setState(() {
-      _notifications = [
-        {
-          'id': '1',
-          'type': 'meal_reminder',
-          'title': 'Lembrete de Refeição',
-          'message': 'Não esqueça de registrar seu almoço!',
-          'timestamp': DateTime.now().subtract(const Duration(hours: 2)),
-          'read': false,
-        },
-        {
-          'id': '2',
-          'type': 'achievement',
-          'title': 'Conquista Desbloqueada!',
-          'message': 'Você completou 7 dias de dieta consecutivos!',
-          'timestamp': DateTime.now().subtract(const Duration(days: 1)),
-          'read': false,
-        },
-        {
-          'id': '3',
-          'type': 'friend_achievement',
-          'title': 'Conquista do Amigo',
-          'message': 'Maria Silva perdeu 2kg esta semana!',
-          'timestamp': DateTime.now().subtract(const Duration(days: 2)),
-          'read': true,
-        },
-        {
-          'id': '4',
-          'type': 'article',
-          'title': 'Novo Artigo',
-          'message': 'Dicas para uma alimentação saudável',
-          'timestamp': DateTime.now().subtract(const Duration(days: 3)),
-          'read': true,
-        },
-      ];
+  void _setupNotificationListener() {
+    final provider = Provider.of<AppProvider>(context, listen: false);
+    final userId = provider.currentUser?.id;
+    if (userId == null) return;
+
+    FirebaseFirestore.instance
+        .collection('user_notifications')
+        .where('userId', isEqualTo: userId)
+        .where('read', isEqualTo: false)
+        .snapshots()
+        .listen((snapshot) {
+      if (snapshot.docs.isNotEmpty) {
+        _loadNotifications();
+      }
     });
+  }
+
+  Future<void> _loadNotifications() async {
+    final provider = Provider.of<AppProvider>(context, listen: false);
+    final userId = provider.currentUser?.id;
+    if (userId == null) return;
+
+    try {
+      QuerySnapshot snapshot = await FirebaseFirestore.instance
+          .collection('user_notifications')
+          .where('userId', isEqualTo: userId)
+          .orderBy('createdAt', descending: true)
+          .limit(50)
+          .get();
+
+      setState(() {
+        _notifications = snapshot.docs.map((doc) {
+          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+          data['id'] = doc.id;
+          final timestamp = (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now();
+          return {
+            'id': doc.id,
+            'type': data['type'] ?? 'general',
+            'title': data['title'] ?? 'Notificação',
+            'message': data['message'] ?? '',
+            'timestamp': timestamp,
+            'read': data['read'] ?? false,
+          };
+        }).toList();
+      });
+    } catch (e) {
+      print('Error loading notifications: $e');
+      // Fallback para notificações vazias
+      setState(() {
+        _notifications = [];
+      });
+    }
   }
 
   String _formatTimestamp(DateTime timestamp) {

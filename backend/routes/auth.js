@@ -38,11 +38,25 @@ router.post('/register', async (req, res) => {
     await auth.save();
 
     // Create user profile
+    // Handle birthDate - if not provided, use a default date (18 years ago)
+    let parsedBirthDate;
+    if (birthDate) {
+      parsedBirthDate = new Date(birthDate);
+      // Check if date is valid
+      if (isNaN(parsedBirthDate.getTime())) {
+        parsedBirthDate = new Date();
+        parsedBirthDate.setFullYear(parsedBirthDate.getFullYear() - 18);
+      }
+    } else {
+      parsedBirthDate = new Date();
+      parsedBirthDate.setFullYear(parsedBirthDate.getFullYear() - 18);
+    }
+
     const user = new User({
       id: userId,
       name,
       email: email.toLowerCase(),
-      birthDate: new Date(birthDate),
+      birthDate: parsedBirthDate,
       height: height || 170,
       weight: weight || 70,
       bodyType: bodyType || 'mesomorfo',

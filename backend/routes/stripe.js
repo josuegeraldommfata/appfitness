@@ -15,8 +15,11 @@ router.post('/create-payment-intent', async (req, res) => {
     }
 
     // Create payment intent
+    // amount vem em reais do frontend (ex: 19.90), converter para centavos
+    const amountInCents = Math.round(amount * 100);
+    
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100), // Convert to cents
+      amount: amountInCents,
       currency: currency.toLowerCase(),
       metadata: {
         userId: userId,
@@ -88,6 +91,64 @@ router.post('/create-subscription', async (req, res) => {
     console.error('Error creating subscription:', error);
     res.status(500).json({
       error: 'Failed to create subscription',
+      message: error.message,
+    });
+  }
+});
+
+// Process Payment with Card Details
+router.post('/process-payment', async (req, res) => {
+  try {
+    const { paymentIntentId, clientSecret, cardNumber, expiryDate, cvc, cardName } = req.body;
+
+    if (!paymentIntentId || !clientSecret || !cardNumber || !expiryDate || !cvc) {
+      return res.status(400).json({
+        error: 'Missing required fields: paymentIntentId, clientSecret, cardNumber, expiryDate, cvc',
+      });
+    }
+
+    // Parse expiry date (MM/YY format)
+    const [month, year] = expiryDate.split('/');
+    const expMonth = parseInt(month, 10);
+    const expYear = parseInt('20' + year, 10);
+
+    // Create payment method
+    const paymentMethod = await stripe.paymentMethods.create({
+      type: 'card',
+      card: {
+        number: cardNumber.replace(/\s/g, ''),
+        exp_month: expMonth,
+        exp_year: expYear,
+        cvc: cvc,
+      },
+      billing_details: {
+        name: cardName || 'Cardholder',
+      },
+    });
+
+    // Confirm payment intent with payment method
+    const paymentIntent = await stripe.paymentIntents.confirm(paymentIntentId, {
+      payment_method: paymentMethod.id,
+    });
+
+    if (paymentIntent.status === 'succeeded') {
+      res.json({
+        success: true,
+        paymentIntentId: paymentIntent.id,
+        status: paymentIntent.status,
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        error: `Payment status: ${paymentIntent.status}`,
+        paymentIntentId: paymentIntent.id,
+      });
+    }
+  } catch (error) {
+    console.error('Error processing payment:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to process payment',
       message: error.message,
     });
   }

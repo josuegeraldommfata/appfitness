@@ -4,6 +4,7 @@ import 'providers/app_provider.dart';
 import 'providers/subscription_provider.dart';
 import 'services/notification_service.dart';
 import 'screens/login_screen.dart';
+import 'screens/register_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/admin_dashboard_screen.dart';
 import 'screens/meals_screen.dart';
@@ -19,10 +20,24 @@ import 'screens/add_friend_screen.dart';
 import 'screens/ai_chat_screen.dart';
 import 'screens/reports_screen.dart';
 import 'screens/plans_screen.dart';
+import 'screens/nutritional_analysis_screen.dart';
+import 'screens/manage_users_screen.dart';
+import 'screens/add_challenge_screen.dart';
+import 'screens/admin_notifications_screen.dart';
+import 'screens/herbalife_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/coach_screen.dart';
+import 'screens/share_screen.dart';
+
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Firebase removed - using MongoDB only
+  // Inicializar Firebase
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
   await NotificationService().initialize();
 
   runApp(
@@ -58,39 +73,40 @@ class MyApp extends StatelessWidget {
 
         return MaterialApp(
           title: 'Nudge',
-      theme: ThemeData(useMaterial3: true).copyWith(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.green,
-          foregroundColor: Colors.white,
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green,
-            foregroundColor: Colors.white,
+          theme: ThemeData(useMaterial3: true).copyWith(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+            appBarTheme: const AppBarTheme(
+              backgroundColor: Colors.blue,
+              foregroundColor: Colors.white,
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                foregroundColor: Colors.white,
+              ),
+            ),
           ),
-        ),
-      ),
-      darkTheme: ThemeData.dark(useMaterial3: true).copyWith(
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.green,
-          brightness: Brightness.dark,
-        ),
-        appBarTheme: AppBarTheme(
-          backgroundColor: Colors.green[800],
-          foregroundColor: Colors.white,
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green[700],
-            foregroundColor: Colors.white,
+          darkTheme: ThemeData.dark(useMaterial3: true).copyWith(
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: Colors.blue,
+              brightness: Brightness.dark,
+            ),
+            appBarTheme: AppBarTheme(
+              backgroundColor: Colors.blue[800],
+              foregroundColor: Colors.white,
+            ),
+            elevatedButtonTheme: ElevatedButtonThemeData(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[700],
+                foregroundColor: Colors.white,
+              ),
+            ),
           ),
-        ),
-      ),
           themeMode: provider.themeMode,
           home: homeScreen,
           routes: {
             '/home': (context) => const HomeScreen(),
+            '/register': (context) => const RegisterScreen(),
             '/admin': (context) => const AdminDashboardScreen(),
             '/meals': (context) => const MealsScreen(),
             '/drinks': (context) => const DrinksScreen(),
@@ -105,6 +121,14 @@ class MyApp extends StatelessWidget {
             '/ai_chat': (context) => const AIChatScreen(),
             '/reports': (context) => const ReportsScreen(),
             '/plans': (context) => const PlansScreen(),
+            '/nutritional_analysis': (context) => const NutritionalAnalysisScreen(),
+            '/manage_users': (context) => const ManageUsersScreen(),
+            '/add_challenge': (context) => const AddChallengeScreen(),
+            '/admin_notifications': (context) => const AdminNotificationsScreen(),
+            '/herbalife': (context) => const HerbalifeScreen(),
+            '/profile': (context) => const ProfileScreen(),
+            '/coach': (context) => const CoachScreen(),
+            '/share': (context) => const ShareScreen(),
           },
         );
       },

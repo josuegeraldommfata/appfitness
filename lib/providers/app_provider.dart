@@ -2,17 +2,17 @@ import 'package:flutter/material.dart';
 import '../models/user.dart';
 import '../models/meal.dart';
 import '../models/body_metrics.dart';
-import '../services/api_service.dart';
-import '../services/mock_data_service.dart';
+import '../models/drink.dart';
+import '../models/challenge.dart';
+import '../services/firebase_service.dart';
 
 class AppProvider with ChangeNotifier {
-  final ApiService _dataService = ApiService();
-  final MockDataService _mockService = MockDataService();
+  final FirebaseService _dataService = FirebaseService();
 
   User? _currentUser;
   User? get currentUser => _currentUser;
 
-  bool get isLoggedIn => _dataService.currentUser != null;
+  bool get isLoggedIn => _dataService.currentUser != null && _currentUser != null;
   bool get isAdmin => _currentUser?.role == 'admin'; // Check role for admin
 
   List<Meal> _todayMeals = [];
@@ -20,10 +20,16 @@ class AppProvider with ChangeNotifier {
 
   double _waterIntake = 0.0;
   double get waterIntake => _waterIntake;
-  double get waterGoal => ApiService.waterGoal;
+  double get waterGoal => FirebaseService.waterGoal;
 
   List<BodyMetrics> _bodyMetricsHistory = [];
   List<BodyMetrics> get bodyMetricsHistory => _bodyMetricsHistory;
+
+  List<Drink> _todayDrinks = [];
+  List<Drink> get todayDrinks => _todayDrinks;
+
+  List<Challenge> _userChallenges = [];
+  List<Challenge> get userChallenges => _userChallenges;
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -63,11 +69,25 @@ class AppProvider with ChangeNotifier {
     _isLoading = true;
     notifyListeners();
 
-    // Check if user is already logged in (token exists)
-    final isAuthenticated = await _dataService.verifyToken();
-    if (isAuthenticated && _dataService.currentUser != null) {
-      _currentUser = _dataService.currentUser;
-      await loadTodayData();
+    // Check if user is already logged in (Firebase Auth)
+    if (_dataService.currentUser != null) {
+      final userId = _dataService.currentUser!.uid;
+      print('App initialized. User already logged in: userId=$userId');
+      
+      final user = await _dataService.getUser(userId);
+      if (user != null) {
+        _currentUser = user;
+        print('User data loaded: ${user.name}, email: ${user.email}');
+        
+        // Carregar dados do dia
+        await loadTodayData();
+        
+        print('App initialized. Today meals: ${_todayMeals.length}, drinks: ${_todayDrinks.length}');
+      } else {
+        print('User data not found in Firestore for userId: $userId');
+      }
+    } else {
+      print('App initialized. No user logged in');
     }
 
     _isLoading = false;
@@ -79,40 +99,37 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _dataService.login(email, password);
-      if (result != null && result['success'] == true) {
-        _currentUser = User.fromJson(result['user']);
-        await loadTodayData();
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      } else {
-        // Fallback to mock data for testing
-        final authUser = _mockService.authenticate(email, password);
-        if (authUser != null) {
-          _currentUser = _mockService.getUserById(authUser.userId);
-          await loadMockTodayData();
+      final userCredential = await _dataService.signIn(email, password);
+      if (userCredential != null && userCredential.user != null) {
+        final userId = userCredential.user!.uid;
+        print('User logged in: userId=$userId, email=$email');
+        
+        final user = await _dataService.getUser(userId);
+        if (user != null) {
+          _currentUser = user;
+          print('User data loaded: ${user.name}, role: ${user.role}');
+          
+          // Carregar dados do dia
+          await loadTodayData();
+          
+          print('Login complete. Today meals: ${_todayMeals.length}, drinks: ${_todayDrinks.length}');
+          
           _isLoading = false;
           notifyListeners();
           return true;
+        } else {
+          print('User data not found in Firestore for userId: $userId');
         }
       }
+      _isLoading = false;
+      notifyListeners();
+      return false;
     } catch (e) {
       print('Login error: $e');
-      // Fallback to mock data
-      final authUser = _mockService.authenticate(email, password);
-      if (authUser != null) {
-        _currentUser = _mockService.getUserById(authUser.userId);
-        await loadMockTodayData();
-        _isLoading = false;
-        notifyListeners();
-        return true;
-      }
+      _isLoading = false;
+      notifyListeners();
+      return false;
     }
-
-    _isLoading = false;
-    notifyListeners();
-    return false;
   }
 
   Future<bool> signUp(String email, String password, User user) async {
@@ -120,23 +137,21 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _dataService.register(
-        email: email,
-        password: password,
-        name: user.name,
-        birthDate: user.birthDate,
-        height: user.height,
-        weight: user.weight,
-        bodyType: user.bodyType,
-        goal: user.goal,
-        targetWeight: user.targetWeight,
-        dailyCalorieGoal: user.dailyCalorieGoal,
-        macroGoals: user.macroGoals,
-      );
-
-      if (result != null && result['success'] == true) {
-        _currentUser = User.fromJson(result['user']);
+      final userCredential = await _dataService.signUp(email, password);
+      if (userCredential != null && userCredential.user != null) {
+        // Definir o ID do usuário com o UID do Firebase Auth
+        final userId = userCredential.user!.uid;
+        final userWithId = user.copyWith(id: userId);
+        
+        // Save user data to Firestore
+        await _dataService.saveUser(userWithId);
+        _currentUser = userWithId;
+        
+        print('New user created: ${userWithId.id}, email: ${userWithId.email}');
+        
+        // Carregar dados do dia (vai retornar vazio para novo usuário, mas está correto)
         await loadTodayData();
+        
         _isLoading = false;
         notifyListeners();
         return true;
@@ -151,7 +166,7 @@ class AppProvider with ChangeNotifier {
   }
 
   Future<void> logout() async {
-    await _dataService.logout();
+    await _dataService.signOut();
     _currentUser = null;
     _todayMeals = [];
     _waterIntake = 0.0;
@@ -160,28 +175,64 @@ class AppProvider with ChangeNotifier {
   }
 
   Future<void> loadTodayData() async {
+    final today = DateTime.now();
+    
+    // Carregar refeições (não falhar se der erro)
     try {
-      final today = DateTime.now();
       _todayMeals = await _dataService.getMealsForDate(today);
+      print('loadTodayData: Loaded ${_todayMeals.length} meals');
+    } catch (e) {
+      print('Error loading meals: $e');
+      // Não limpar se já tiver dados
+      if (_todayMeals.isEmpty) {
+        _todayMeals = [];
+      }
+    }
+    
+    // Carregar bebidas (não falhar se der erro)
+    try {
+      _todayDrinks = await _dataService.getDrinksForDate(today);
+      print('loadTodayData: Loaded ${_todayDrinks.length} drinks');
+    } catch (e) {
+      print('Error loading drinks: $e');
+      // Não limpar se já tiver dados
+      if (_todayDrinks.isEmpty) {
+        _todayDrinks = [];
+      }
+    }
+    
+    // Carregar água
+    try {
       _waterIntake = await _dataService.getWaterIntakeToday();
+    } catch (e) {
+      print('Error loading water intake: $e');
+    }
+    
+    // Carregar métricas corporais (não falhar se der erro de índice)
+    try {
       _bodyMetricsHistory = await _dataService.getBodyMetricsHistory();
     } catch (e) {
-      print('Error loading today data: $e');
-      // Set empty data on error to avoid breaking the UI
-      _todayMeals = [];
-      _waterIntake = 0.0;
-      _bodyMetricsHistory = [];
-      // Note: Create the required index in Firebase Console to fix the query error
+      print('Error loading body metrics: $e');
+      // Não limpar se já tiver dados
+      if (_bodyMetricsHistory.isEmpty) {
+        _bodyMetricsHistory = [];
+      }
     }
+    
+    // Carregar desafios
+    try {
+      _userChallenges = await _dataService.getUserChallenges();
+    } catch (e) {
+      print('Error loading challenges: $e');
+      if (_userChallenges.isEmpty) {
+        _userChallenges = [];
+      }
+    }
+    
+    print('loadTodayData: Final count - meals: ${_todayMeals.length}, drinks: ${_todayDrinks.length}');
     notifyListeners();
   }
 
-  Future<void> loadMockTodayData() async {
-    _todayMeals = _mockService.getMealsForDate(DateTime.now());
-    _waterIntake = _mockService.waterIntakeToday;
-    _bodyMetricsHistory = _mockService.getBodyMetricsHistory();
-    notifyListeners();
-  }
 
   Future<void> loadDataForDate(DateTime date) async {
     _todayMeals = await _dataService.getMealsForDate(date);
@@ -195,8 +246,19 @@ class AppProvider with ChangeNotifier {
   }
 
   Future<void> addMeal(Meal meal) async {
-    await _dataService.addMeal(meal);
-    await loadTodayData(); // Reload today data
+    try {
+      await _dataService.addMeal(meal);
+      print('Meal saved to Firebase, now reloading data...');
+      
+      // Recarregar dados do dia
+      await loadTodayData();
+      
+      print('Meal added and data reloaded. Today meals count: ${_todayMeals.length}');
+      print('Meals details: ${_todayMeals.map((m) => '${m.type} - ${m.totalCalories}kcal').join(', ')}');
+    } catch (e) {
+      print('Error adding meal: $e');
+      rethrow;
+    }
   }
 
   Future<void> updateMeal(String id, Meal meal) async {
@@ -221,15 +283,44 @@ class AppProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> addDrink(Drink drink) async {
+    try {
+      await _dataService.addDrink(drink);
+      // Recarregar dados do dia
+      await loadTodayData();
+      print('Drink added and data reloaded. Today drinks count: ${_todayDrinks.length}');
+    } catch (e) {
+      print('Error adding drink: $e');
+      rethrow;
+    }
+  }
+
+  Future<void> deleteDrink(String id) async {
+    await _dataService.deleteDrink(id);
+    await loadTodayData();
+  }
+
+  Future<void> addChallenge(Challenge challenge) async {
+    await _dataService.addChallenge(challenge);
+    await loadTodayData();
+  }
+
+  Future<void> deleteChallenge(String challengeId) async {
+    await _dataService.deleteChallenge(challengeId);
+    await loadTodayData();
+  }
+
   Future<void> addBodyMetrics(BodyMetrics metrics) async {
     await _dataService.addBodyMetrics(metrics);
     _bodyMetricsHistory = await _dataService.getBodyMetricsHistory();
     notifyListeners();
   }
 
-  // Calculate daily totals
+  // Calculate daily totals (including drinks)
   int get todayTotalCalories {
-    return _todayMeals.fold(0, (sum, meal) => sum + meal.totalCalories);
+    int mealsCalories = _todayMeals.fold(0, (sum, meal) => sum + meal.totalCalories);
+    int drinksCalories = _todayDrinks.fold(0, (sum, drink) => sum + drink.calories);
+    return mealsCalories + drinksCalories;
   }
 
   Map<String, double> get todayTotalMacros {
@@ -237,11 +328,15 @@ class AppProvider with ChangeNotifier {
     double carbs = 0;
     double fat = 0;
 
+    // Add macros from meals
     for (var meal in _todayMeals) {
       protein += meal.totalMacros['protein'] ?? 0;
       carbs += meal.totalMacros['carbs'] ?? 0;
       fat += meal.totalMacros['fat'] ?? 0;
     }
+
+    // Note: Drinks typically don't have macros, but if they do, add them here
+    // For now, drinks only contribute calories
 
     return {'protein': protein, 'carbs': carbs, 'fat': fat};
   }
@@ -284,6 +379,66 @@ class AppProvider with ChangeNotifier {
   Future<void> updateUserRole(String uid, String role) async {
     await _dataService.updateUserRole(uid, role);
     await loadAdminData();
+  }
+
+  Future<Map<String, dynamic>> getReportDataForDate(DateTime date) async {
+    try {
+      // Buscar dados reais do Firebase para a data selecionada
+      final startOfDay = DateTime(date.year, date.month, date.day);
+      final endOfDay = DateTime(date.year, date.month, date.day, 23, 59, 59);
+      
+      // Buscar refeições do dia
+      final meals = await _dataService.getMealsForDateRange(startOfDay, endOfDay);
+      
+      // Buscar assinaturas ativas
+      final subscriptions = await _dataService.getActiveSubscriptionsForDate(date);
+      
+      // Calcular receita
+      double revenue = 0.0;
+      for (var sub in subscriptions) {
+        revenue += sub.amount;
+      }
+      
+      // Calcular calorias médias
+      double avgCalories = 0.0;
+      if (meals.isNotEmpty) {
+        final totalCalories = meals.fold(0, (sum, meal) => sum + meal.totalCalories);
+        avgCalories = totalCalories / meals.length;
+      }
+      
+      // Top alimentos (contar frequência)
+      Map<String, int> foodCount = {};
+      for (var meal in meals) {
+        for (var food in meal.foods) {
+          foodCount[food.name] = (foodCount[food.name] ?? 0) + 1;
+        }
+      }
+      final topFoods = foodCount.entries.toList()
+        ..sort((a, b) => b.value.compareTo(a.value));
+      
+      return {
+        'totalUsers': _userCount,
+        'activeUsers': _activeUsersCount,
+        'totalMeals': meals.length,
+        'averageCalories': avgCalories.round(),
+        'topFoods': topFoods.take(10).map((e) => {'name': e.key, 'count': e.value}).toList(),
+        'revenue': revenue,
+        'subscriptions': subscriptions.length,
+        'date': date.toIso8601String(),
+      };
+    } catch (e) {
+      print('Error getting report data: $e');
+      return {
+        'totalUsers': _userCount,
+        'activeUsers': _activeUsersCount,
+        'totalMeals': 0,
+        'averageCalories': 0,
+        'topFoods': [],
+        'revenue': 0.0,
+        'subscriptions': 0,
+        'date': date.toIso8601String(),
+      };
+    }
   }
 
   // Mock friends data

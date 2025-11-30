@@ -99,7 +99,7 @@ class Plans {
     Plan(
       type: PlanType.leader,
       name: 'LÍDER',
-      description: 'Você paga apenas pelo que realmente gera resultado — sua rede ativa.',
+      description: 'Você paga apenas pelo que realmente gera resultado — sua rede ativa. Quanto mais cresce, mais o Nudge trabalha por você.',
       monthlyPrice: 99.0,
       yearlyPrice: 999.0,
       yearlySavings: 'Economize R\$ 189',

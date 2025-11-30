@@ -6,6 +6,10 @@ import '../widgets/macro_progress_card.dart';
 import '../widgets/water_progress_card.dart';
 import '../widgets/today_meals_list.dart';
 import '../widgets/motivational_quote.dart';
+import '../widgets/herbalife_section.dart';
+import '../widgets/share_app_modal.dart';
+import '../models/meal.dart';
+import '../models/drink.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -15,40 +19,12 @@ class HomeScreen extends StatelessWidget {
     return Consumer<AppProvider>(
       builder: (context, provider, child) {
         return Scaffold(
+          backgroundColor: const Color(0xFFE3F2FD), // Azul claro similar ao print
           appBar: AppBar(
-            title: const Text('Nudge'),
-            backgroundColor: Colors.green[600],
+            title: const Text('FitLife Coach'),
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black,
             elevation: 0,
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.calendar_today),
-                onPressed: () {
-                  Navigator.pushNamed(context, '/calendar');
-                },
-                tooltip: 'Calendário',
-              ),
-              IconButton(
-                icon: const Icon(Icons.notifications),
-                onPressed: () {
-                  Navigator.pushNamed(context, '/notifications');
-                },
-                tooltip: 'Notificações',
-              ),
-              IconButton(
-                icon: const Icon(Icons.settings),
-                onPressed: () {
-                  Navigator.pushNamed(context, '/settings');
-                },
-                tooltip: 'Configurações',
-              ),
-              IconButton(
-                icon: const Icon(Icons.logout),
-                onPressed: () {
-                  provider.logout();
-                },
-                tooltip: 'Sair',
-              ),
-            ],
           ),
           body: provider.isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -95,92 +71,477 @@ class HomeScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 24),
 
-                        // Refeições de Hoje
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        // Minhas Refeições
+                        Text(
+                          'Minhas Refeições',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        GridView.count(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          crossAxisCount: 2,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                          childAspectRatio: 1.1,
                           children: [
-                            Text(
-                              'Refeições de Hoje',
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                            _buildMealCard(
+                              context,
+                              title: 'Café da manhã',
+                              icon: Icons.free_breakfast,
+                              color: Colors.orange[100]!,
+                              iconColor: Colors.orange[700]!,
+                              onTap: () => _navigateToAddMeal(context, 'Café da Manhã'),
                             ),
-                            TextButton.icon(
-                              onPressed: () {
-                                // Navegar para adicionar refeição
-                                Navigator.pushNamed(context, '/add_meal');
-                              },
-                              icon: const Icon(Icons.add),
-                              label: const Text('Adicionar'),
-                              style: TextButton.styleFrom(
-                                foregroundColor: Colors.green[600],
-                              ),
+                            _buildMealCard(
+                              context,
+                              title: 'Lanche da manhã',
+                              icon: Icons.apple,
+                              color: Colors.green[100]!,
+                              iconColor: Colors.green[700]!,
+                              onTap: () => _navigateToAddMeal(context, 'Lanche'),
+                            ),
+                            _buildMealCard(
+                              context,
+                              title: 'Almoço',
+                              icon: Icons.restaurant,
+                              color: Colors.purple[100]!,
+                              iconColor: Colors.purple[700]!,
+                              onTap: () => _navigateToAddMeal(context, 'Almoço'),
+                            ),
+                            _buildMealCard(
+                              context,
+                              title: 'Lanche da tarde',
+                              icon: Icons.local_drink,
+                              color: Colors.pink[100]!,
+                              iconColor: Colors.pink[700]!,
+                              onTap: () => _navigateToAddMeal(context, 'Lanche'),
+                            ),
+                            _buildMealCard(
+                              context,
+                              title: 'Jantar',
+                              icon: Icons.dinner_dining,
+                              color: Colors.blue[100]!,
+                              iconColor: Colors.blue[700]!,
+                              onTap: () => _navigateToAddMeal(context, 'Jantar'),
+                            ),
+                            _buildMealCard(
+                              context,
+                              title: 'Ceia',
+                              icon: Icons.local_cafe,
+                              color: Colors.grey[200]!,
+                              iconColor: Colors.grey[700]!,
+                              onTap: () => _navigateToAddMeal(context, 'Lanche'),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 8),
-                        const TodayMealsList(),
+                        const SizedBox(height: 24),
+
+                        // Refeições Adicionadas - SEMPRE MOSTRAR
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Refeições Adicionadas',
+                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: provider.todayMeals.isNotEmpty ? Colors.green[100] : Colors.grey[200],
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      '${provider.todayMeals.length}',
+                                      style: TextStyle(
+                                        color: provider.todayMeals.isNotEmpty ? Colors.green[800] : Colors.grey[600],
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              if (provider.todayMeals.isEmpty)
+                                Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24.0),
+                                    child: Column(
+                                      children: [
+                                        Icon(Icons.restaurant_menu, size: 48, color: Colors.grey[400]),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Nenhuma refeição adicionada hoje',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              else
+                                const TodayMealsList(),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Bebidas
+                        Text(
+                          'Bebidas',
+                          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Card(
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: InkWell(
+                            onTap: () {
+                              Navigator.pushNamed(context, '/add_drink');
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.local_drink, size: 40, color: Colors.blue[600]),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Adicionar Bebida',
+                                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Registre suas bebidas do dia',
+                                          style: TextStyle(color: Colors.grey[600]),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(Icons.arrow_forward_ios, color: Colors.grey[400]),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Bebidas Adicionadas - SEMPRE MOSTRAR
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'Bebidas Adicionadas',
+                                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: provider.todayDrinks.isNotEmpty ? Colors.blue[100] : Colors.grey[200],
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Text(
+                                      '${provider.todayDrinks.length}',
+                                      style: TextStyle(
+                                        color: provider.todayDrinks.isNotEmpty ? Colors.blue[800] : Colors.grey[600],
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              if (provider.todayDrinks.isEmpty)
+                                Center(
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(24.0),
+                                    child: Column(
+                                      children: [
+                                        Icon(Icons.local_drink, size: 48, color: Colors.grey[400]),
+                                        const SizedBox(height: 8),
+                                        Text(
+                                          'Nenhuma bebida adicionada hoje',
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              else
+                                _buildTodayDrinksList(provider.todayDrinks),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
                       ],
                     ),
                   ),
                 ),
-          floatingActionButton: FloatingActionButton(
-            onPressed: () {
-              Navigator.pushNamed(context, '/ai_chat');
-            },
-            backgroundColor: Colors.green[600],
-            child: const Icon(Icons.chat, color: Colors.white),
-            tooltip: 'Assistente AI para consultas nutricionais',
-          ),
-          bottomNavigationBar: BottomNavigationBar(
-            currentIndex: 0,
-            onTap: (index) {
-              switch (index) {
-                case 0:
-                  // Já na home
-                  break;
-                case 1:
-                  Navigator.pushNamed(context, '/meals');
-                  break;
-                case 2:
-                  Navigator.pushNamed(context, '/drinks');
-                  break;
-                case 3:
-                  Navigator.pushNamed(context, '/progress');
-                  break;
-                case 4:
-                  Navigator.pushNamed(context, '/friends');
-                  break;
-              }
-            },
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home),
-                label: 'Home',
+          bottomNavigationBar: Container(
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black12,
+                  blurRadius: 4,
+                  offset: Offset(0, -2),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              child: Container(
+                height: 60,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildNavButton(
+                      context,
+                      label: 'Dashboard',
+                      icon: Icons.dashboard,
+                      onTap: () {
+                        Navigator.pushReplacementNamed(context, '/home');
+                      },
+                      isActive: true,
+                    ),
+                    _buildNavButton(
+                      context,
+                      label: 'Coach',
+                      icon: Icons.chat,
+                      onTap: () {
+                        Navigator.pushNamed(context, '/coach');
+                      },
+                    ),
+                    _buildNavButton(
+                      context,
+                      label: 'Herbalife',
+                      icon: Icons.business,
+                      onTap: () {
+                        Navigator.pushNamed(context, '/herbalife');
+                      },
+                    ),
+                    _buildNavButton(
+                      context,
+                      label: 'Perfil',
+                      icon: Icons.person,
+                      onTap: () {
+                        Navigator.pushNamed(context, '/profile');
+                      },
+                    ),
+                    _buildNavButton(
+                      context,
+                      label: 'Compartilhar',
+                      icon: Icons.share,
+                      onTap: () {
+                        Navigator.pushNamed(context, '/share');
+                      },
+                    ),
+                  ],
+                ),
               ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.restaurant),
-                label: 'Refeições',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.local_drink),
-                label: 'Bebidas',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.show_chart),
-                label: 'Progresso',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.people),
-                label: 'Amigos',
-              ),
-            ],
-            selectedItemColor: Colors.green[600],
-            unselectedItemColor: Colors.grey,
-            type: BottomNavigationBarType.fixed,
+            ),
           ),
         );
       },
+    );
+  }
+
+  Widget _buildTodayDrinksList(List<Drink> drinks) {
+    return ListView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: drinks.length,
+      itemBuilder: (context, index) {
+        final drink = drinks[index];
+        return Card(
+          elevation: 2,
+          margin: const EdgeInsets.only(bottom: 8),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: ListTile(
+            leading: CircleAvatar(
+              backgroundColor: Colors.blue[100],
+              child: Icon(
+                Icons.local_drink,
+                color: Colors.blue[700],
+              ),
+            ),
+            title: Text(
+              drink.name,
+              style: const TextStyle(fontWeight: FontWeight.w500),
+            ),
+            subtitle: Text(
+              '${(drink.amount / 1000).toStringAsFixed(1)}L • ${drink.calories} kcal',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+            trailing: Text(
+              '${drink.calories} kcal',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.blue[600],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildNavButton(
+    BuildContext context, {
+    required String label,
+    required IconData icon,
+    required VoidCallback onTap,
+    bool isActive = false,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 20,
+              color: isActive ? Colors.blue[600] : Colors.grey[600],
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                color: isActive ? Colors.blue[600] : Colors.grey[600],
+                fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMealCard(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required Color color,
+    required Color iconColor,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 32, color: iconColor),
+              const SizedBox(height: 8),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[800],
+                ),
+              ),
+              const SizedBox(height: 8),
+              ElevatedButton(
+                onPressed: onTap,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: iconColor,
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  minimumSize: const Size(0, 28),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                child: const Text(
+                  'Adicionar refeição',
+                  style: TextStyle(fontSize: 11),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToAddMeal(BuildContext context, String mealType) {
+    Navigator.pushNamed(
+      context,
+      '/add_meal',
+      arguments: mealType,
     );
   }
 }
